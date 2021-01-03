@@ -14,12 +14,45 @@ Why does this file exist, and why not put this in __main__?
 
   Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 """
+from pysds011 import driver
 import click
+import logging
+import serial
+import sys
 
 
 @click.command()
 @click.option('--port', default='/dev/ttyUSB0', help='UART port to communicate with dust sensor.')
-@click.argument('names', nargs=-1)
-def main(port, names):
+@click.option('-v', '--verbose', count=True, default=1, help="Verbosity level (1:warning[default], 2:info, 3:debug) ")
+def main(port, verbose):
     """cli interface to SD011 driver"""
-    click.echo(repr(names))
+    FORMAT = "[%(filename)s:%(lineno)s - %(funcName)15s()]::%(message)s"
+    logging.basicConfig(format=FORMAT, level=logging.DEBUG)
+    log = logging.getLogger(__name__)
+    if verbose <= 1:
+        log.setLevel(logging.WARNING)
+    elif verbose == 2:
+        log.setLevel(logging.INFO)
+    else:
+        log.setLevel(logging.DEBUG)
+
+    ser = serial.Serial()
+    ser.port = port
+    ser.baudrate = 9600
+
+    ser.open()
+    ser.flushInput()
+    sd = driver.SDS011(ser, log)
+    try:
+        sd.cmd_set_sleep(0)
+        sd.cmd_set_mode(sd.MODE_QUERY)
+        sd.cmd_firmware_ver()
+        time.sleep(3)
+        pm = sd.cmd_query_data()
+        click.echo('####'+str(pm))
+    except Exception as e:
+        log.exception(e)
+    finally:
+        sd.cmd_set_sleep(1)
+
+    sys.exit(0)

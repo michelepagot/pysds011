@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # coding=utf-8
-import serial, struct, sys, time
+import struct, sys, time
 import logging
 
 DEBUG = 1
@@ -112,7 +112,7 @@ class SDS011(object):
         d = self.__read_response()
         self.log.debug(d)
         self.log.debug(type(d[0]))
-        
+
         if d[1] == int(b'0xc0', 16):
             return self.__process_data(d)
         else:
@@ -124,7 +124,7 @@ if __name__ == "__main__":
     FORMAT = "[%(filename)s:%(lineno)s - %(funcName)15s()]::%(message)s"
     logging.basicConfig(format=FORMAT, level=DEBUG)
     log = logging.getLogger('main')
- 
+
     ser = serial.Serial()
     ser.port = sys.argv[1]
     ser.baudrate = 9600
