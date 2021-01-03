@@ -18,6 +18,8 @@ import click
 
 
 @click.command()
+@click.option('--port', default='/dev/ttyUSB0', help='UART port to communicate with dust sensor.')
 @click.argument('names', nargs=-1)
-def main(names):
+def main(port, names):
+    """cli interface to SD011 driver"""
     click.echo(repr(names))
