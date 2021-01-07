@@ -52,13 +52,14 @@ class SDS011(object):
 
         # this loop is to aligne to byte
         # that correspond to response beginning
-        while byte != b'\xaa' and 0 != len(byte):
+        while byte is not None and byte != b'\xaa' and 0 != len(byte):
             byte = self.ser.read(size=1)
-            self.log.debug('<first byte:%s:%s:%d', str(byte), str(type(byte)), len(byte))
+            if byte is not None:
+                self.log.debug('<first byte:%s:%s:%d', str(byte), str(type(byte)), len(byte))
         # restore timeout of original
         # serial instance injected in constructor
         self.ser.timeout = orig_timeout
-        if 0 == len(byte):
+        if  byte is None or 0 == len(byte):
             self.log.debug('No bytes within 5sec')
             return None
         d = self.ser.read(size=9)
@@ -70,7 +71,8 @@ class SDS011(object):
         mode = 0 if sleep else 1
         self.log.debug('mode:%d', mode)
         self.ser.write(self.__construct_command(CMD_SLEEP, [0x1, mode]))
-        self.__read_response()
+        resp = self.__read_response()
+        return resp is not None
 
 
     def cmd_set_mode(self, mode=1):
@@ -83,14 +85,17 @@ class SDS011(object):
         self.ser.write(self.__construct_command(CMD_FIRMWARE))
         d = self.__read_response()
         self.log.debug('fw ver byte:%s', str(d))
-        self.__process_version(d)
+        print(self.__process_version(d))
 
 
     def __process_version(self, d):
+        if d is None:
+            self.log.error("Empty data for version")
+            return
         r = struct.unpack('<BBBHBB', d[3:])
         self.log.debug(r)
         checksum = sum(v for v in d[2:8])%256
-        print("Y: {}, M: {}, D: {}, ID: {}, CRC={}".format(r[0], r[1], r[2], hex(r[3]), "OK" if (checksum==r[4] and r[5]==0xab) else "NOK"))
+        return "Y: {}, M: {}, D: {}, ID: {}, CRC={}".format(r[0], r[1], r[2], hex(r[3]), "OK" if (checksum==r[4] and r[5]==0xab) else "NOK")
 
 
     def __process_data(self, d):
@@ -111,6 +116,9 @@ class SDS011(object):
         self.ser.write(self.__construct_command(CMD_QUERY_DATA))
         d = self.__read_response()
         self.log.debug(d)
+        if d is None:
+            self.log.error("No data from query")
+            return None
         self.log.debug(type(d[0]))
 
         if d[1] == int(b'0xc0', 16):
@@ -118,31 +126,3 @@ class SDS011(object):
         else:
             self.log.error("Not executed as d[1]="+hex(d[1]))
             return None
-
-
-if __name__ == "__main__":
-    FORMAT = "[%(filename)s:%(lineno)s - %(funcName)15s()]::%(message)s"
-    logging.basicConfig(format=FORMAT, level=DEBUG)
-    log = logging.getLogger('main')
-
-    ser = serial.Serial()
-    ser.port = sys.argv[1]
-    ser.baudrate = 9600
-
-    ser.open()
-    ser.flushInput()
-
-    sd = SDS011(ser, log)
-    try:
-        sd.cmd_set_sleep(0)
-        sd.cmd_set_mode(sd.MODE_QUERY)
-        sd.cmd_firmware_ver()
-        time.sleep(3)
-        pm = sd.cmd_query_data()
-        print('####'+str(pm))
-    except Exception as e:
-        log.exception(e)
-    finally:
-        sd.cmd_set_sleep(1)
-
-    sys.exit(0)

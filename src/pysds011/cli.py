@@ -19,6 +19,7 @@ import click
 import logging
 import serial
 import sys
+import time
 
 
 @click.command()
@@ -39,20 +40,28 @@ def main(port, verbose):
     ser = serial.Serial()
     ser.port = port
     ser.baudrate = 9600
+    sd = None
+    exit_val = 0
 
-    ser.open()
-    ser.flushInput()
-    sd = driver.SDS011(ser, log)
     try:
+        ser.open()
+        ser.flushInput()
+        sd = driver.SDS011(ser, log)
         sd.cmd_set_sleep(0)
         sd.cmd_set_mode(sd.MODE_QUERY)
         sd.cmd_firmware_ver()
         time.sleep(3)
         pm = sd.cmd_query_data()
-        click.echo('####'+str(pm))
+        if pm is not None:
+            click.echo('####'+str(pm))
+        else:
+            exit_val = 1
     except Exception as e:
         log.exception(e)
+        exit_val = 1
     finally:
-        sd.cmd_set_sleep(1)
+        if sd is not None:
+            sd.cmd_set_sleep(1)
+        ser.close()
 
-    sys.exit(0)
+    sys.exit(exit_val)
