@@ -85,7 +85,7 @@ class SDS011(object):
         self.ser.write(self.__construct_command(CMD_FIRMWARE))
         d = self.__read_response()
         self.log.debug('fw ver byte:%s', str(d))
-        print(self.__process_version(d))
+        return self.__process_version(d)
 
 
     def __process_version(self, d):
@@ -105,9 +105,9 @@ class SDS011(object):
 
         checksum = sum(v for v in d[2:8])%256
 
-        self.log.info("PM 2.5: {} μg/m^3  PM 10: {} μg/m^3 CRC={}".format(pm25, pm10, "OK" if (checksum==r[2] and r[3]==0xab) else "NOK"))
+        res_str = "PM 2.5: {} μg/m^3  PM 10: {} μg/m^3 CRC={}".format(pm25, pm10, "OK" if (checksum==r[2] and r[3]==0xab) else "NOK")
         if (checksum==r[2] and r[3]==0xab):
-            return {'pm25': pm25, 'pm10': pm10}
+            return {'pm25': pm25, 'pm10': pm10, 'pretty': res_str}
         else:
             return None
 
