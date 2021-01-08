@@ -34,15 +34,17 @@ Package has a class interface
 
 
 Package is also provided with a reference cli application
-    > pysds011.exe --port COM42
+    pysds011.exe --port COM42 version
+    >> 21.2.2223
 
 
 Documentation
 =============
 
-
-SDS011 datasheet http://cl.ly/ekot
-This project is ispired by https://gist.github.com/kadamski/92653913a53baf9dd1a8
+This internal package documentation is available at https://pysds011.readthedocs.io/
+Some other interesting reading are:
+ - SDS011 datasheet http://cl.ly/ekot
+ - This project is inspired by https://gist.github.com/kadamski/92653913a53baf9dd1a8
 
 
 Development

@@ -61,6 +61,8 @@ setup(
         'Topic :: Utilities',
     ],
     project_urls={
+        'Documentation': 'https://pysds011.readthedocs.io/',
+        'Changelog': 'https://pysds011.readthedocs.io/en/latest/changelog.html',
         'Issue Tracker': 'https://github.com/michelepagot/pysds011/issues',
     },
     keywords=[
