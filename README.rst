@@ -43,8 +43,8 @@ Documentation
 
 This internal package documentation is available at https://pysds011.readthedocs.io/
 Some other interesting reading are:
- - SDS011 datasheet http://cl.ly/ekot
- - This project is inspired by https://gist.github.com/kadamski/92653913a53baf9dd1a8
+- SDS011 datasheet http://cl.ly/ekot
+- This project is inspired by https://gist.github.com/kadamski/92653913a53baf9dd1a8
 
 
 Development
