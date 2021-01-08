@@ -23,8 +23,6 @@ py==1.10.0
 Pygments==2.7.3
 pymongo==3.11.2
 pyparsing==2.4.7
-# Editable install with no version control (pysds011==0.0.2)
--e c:\userdata\draft\dust\pysds011\src
 pyserial==3.5
 pytest==6.2.1
 pytest-mock==3.5.0

@@ -2,6 +2,13 @@
 Changelog
 =========
 
+0.0.3 (2021-1-8)
+------------------
+
+* cli get subcommands and produce meaningful results
+* robustness about error handling
+* Testing and documentation
+
 0.0.2 (2021-1-4)
 ------------------
 
