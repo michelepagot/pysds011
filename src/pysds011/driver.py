@@ -1,7 +1,5 @@
-#!/usr/bin/python
 # coding=utf-8
-import struct, sys, time
-import logging
+import struct
 
 DEBUG = 1
 CMD_MODE = 2
@@ -14,8 +12,17 @@ MODE_ACTIVE = 0
 
 
 class SDS011(object):
+    """Main driver class
+    """
 
     def __init__(self, ser, log):
+        """Constructor that just record serial and logging reference
+
+        :param ser: serial, configured, instance
+        :type ser: pyserial
+        :param log: logging, configured, instance
+        :type log: logging
+        """
         self.log = log
         self.ser = ser
 
@@ -68,6 +75,13 @@ class SDS011(object):
 
 
     def cmd_set_sleep(self, sleep=1):
+        """Set sleep mode
+
+        :param sleep: 1:enable sleep mode, 0:wakeup, defaults to 1
+        :type sleep: int, optional
+        :return: True is set is ok
+        :rtype: bool
+        """
         mode = 0 if sleep else 1
         self.log.debug('mode:%d', mode)
         self.ser.write(self.__construct_command(CMD_SLEEP, [0x1, mode]))
@@ -82,6 +96,11 @@ class SDS011(object):
 
 
     def cmd_firmware_ver(self):
+        """Get FW version
+
+        :return: version description string
+        :rtype: string
+        """
         self.ser.write(self.__construct_command(CMD_FIRMWARE))
         d = self.__read_response()
         self.log.debug('fw ver byte:%s', str(d))

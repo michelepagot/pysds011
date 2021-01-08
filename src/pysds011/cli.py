@@ -1,3 +1,5 @@
+#!/usr/bin/python
+# coding=utf-8
 """
 Module that contains the command line app.
 
@@ -17,7 +19,6 @@ Why does this file exist, and why not put this in __main__?
 
 from pysds011 import driver
 import click
-#from click.decorators import pass_context
 import click_log
 import logging
 import serial

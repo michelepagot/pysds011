@@ -22,6 +22,13 @@ pysds011 could always use more documentation, whether as part of the
 official pysds011 docs, in docstrings, or even on the web in blog posts,
 articles, and such.
 
+In order to build the documentation locally
+
+1. Create once a developement environment (here a Windows procedure, but linux one is mostly the same: look for in virtualend documentation)
+    virtualenv.exe venv_doc
+    venv_doc\Script\activate.bat 
+    pip install -r docs\requirements.txt
+
 Feature requests and feedback
 =============================
 

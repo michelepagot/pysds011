@@ -1,7 +1,7 @@
 
 from click.testing import CliRunner
 
-from pysds011.cli import main, version
+from pysds011.cli import main, fw_version
 from serial import SerialException
 
 
@@ -34,6 +34,6 @@ def test_version(mocker):
     mocker.patch('serial.Serial.read')
     mocker.patch('serial.Serial.close')
     runner = CliRunner()
-    result = runner.invoke(version, [])
+    result = runner.invoke(fw_version, [])
 
     assert result.exit_code == 1
