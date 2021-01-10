@@ -51,3 +51,4 @@ Some other interesting reading are:
 Development
 ===========
 
+This repo just decide to adopt git flow strategy ...
