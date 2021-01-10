@@ -29,9 +29,11 @@ logging.basicConfig(format=FORMAT, level=logging.DEBUG)
 log = logging.getLogger(__name__)
 click_log.basic_config(log)
 
+
 class Context(object):
     def __init__(self, ser=None):
         self.serial = ser
+
 
 @click.group()
 @click.option('--port', default='/dev/ttyUSB0', help='UART port to communicate with dust sensor.')

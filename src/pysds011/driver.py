@@ -25,15 +25,12 @@ class SDS011(object):
         self.log = log
         self.ser = ser
 
-
     @property
     def MODE_QUERY(self):
         return 1
 
-
     def __dump(self, d, prefix=''):
         self.log.debug(prefix + d.hex())
-
 
     def __construct_command(self, cmd, data=[]):
         # all commands are 19bytes long
@@ -42,9 +39,9 @@ class SDS011(object):
         # user needs to provide 13bytes = 1byte for cmd + some (max12) bytes for data
         assert len(data) <= 12
         # feel not provided data with zero
-        data += [0,]*(12-len(data))
-        #calculate the checksum
-        checksum = (sum(data)+cmd-2)%256
+        data += [0, ]*(12-len(data))
+        # calculate the checksum
+        checksum = (sum(data)+cmd-2) % 256
         # head:AA  CommandID:B4 --> are common to all PC->Sensor commands
         ret = bytes().fromhex("aab4")
         ret += bytes([cmd])
@@ -56,7 +53,6 @@ class SDS011(object):
         ret += bytes().fromhex("ab")
         self.__dump(ret, '> ')
         return ret
-
 
     def __read_response(self):
         # initialize it to something not like 0xAA
@@ -83,10 +79,8 @@ class SDS011(object):
         self.__dump(d, '< ')
         return byte + d
 
-
     def __response_checksum(self, data):
         return sum(v for v in data[2:8])%256
-
 
     def __process_version(self, d):
         if d is None:
@@ -103,7 +97,6 @@ class SDS011(object):
         checksum = self.__response_checksum(d)
         return "Y: {}, M: {}, D: {}, ID: {}, CRC={}".format(r[0], r[1], r[2], hex(r[3]), "OK" if (checksum==r[4] and r[5]==0xab) else "NOK")
 
-
     def __process_data(self, d):
         r = struct.unpack('<HHxxBB', d[2:])
         pm25 = r[0]/10.0
@@ -116,7 +109,6 @@ class SDS011(object):
             return {'pm25': pm25, 'pm10': pm10, 'pretty': res_str}
         else:
             return None
-
 
     def cmd_set_sleep(self, sleep=1):
         """Set sleep mode
@@ -132,12 +124,10 @@ class SDS011(object):
         resp = self.__read_response()
         return resp is not None
 
-
     def cmd_set_mode(self, mode=1):
         self.log.debug('mode:%d', mode)
         self.ser.write(self.__construct_command(CMD_MODE, [0x1, mode]))
         self.__read_response()
-
 
     def cmd_firmware_ver(self):
         """Get FW version
@@ -150,7 +140,6 @@ class SDS011(object):
         d = self.__read_response()
         self.log.debug('fw ver byte:%s', str(d))
         return self.__process_version(d)
-
 
     def cmd_query_data(self):
         self.ser.write(self.__construct_command(CMD_QUERY_DATA))
