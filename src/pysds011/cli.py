@@ -2,20 +2,19 @@
 # coding=utf-8
 """
 Module that contains the command line app.
-
-Why does this file exist, and why not put this in __main__?
-
-  You might be tempted to import things from __main__ later, but that will cause
-  problems: the code will get executed twice:
-
-  - When you run `python -mpysds011` python will execute
-    ``__main__.py`` as a script. That means there won't be any
-    ``pysds011.__main__`` in ``sys.modules``.
-  - When you import __main__ it will get executed again (as a module) because
-    there's no ``pysds011.__main__`` in ``sys.modules``.
-
-  Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 """
+#  Why does this file exist, and why not put this in __main__?
+#
+#  You might be tempted to import things from __main__ later, but that will cause
+#  problems: the code will get executed twice:
+#
+#  - When you run `python -mpysds011` python will execute
+#    ``__main__.py`` as a script. That means there won't be any
+#    ``pysds011.__main__`` in ``sys.modules``.
+#  - When you import __main__ it will get executed again (as a module) because
+#    there's no ``pysds011.__main__`` in ``sys.modules``.
+#
+#  Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 
 from pysds011 import driver
 import click
@@ -56,6 +55,20 @@ def process_result(result, **kwargs):
 
 
 @main.command()
+@click.argument('subcommand')
+@click.pass_context
+def help(ctx, subcommand):
+    """
+    Get specific help of a command
+    """
+    subcommand_obj = main.get_command(ctx, subcommand)
+    if subcommand_obj is None:
+        click.echo("I don't know that command.")
+    else:
+        click.echo(subcommand_obj.get_help(ctx))
+
+
+@main.command()
 @click.pass_obj
 def fw_version(ctx):
     """
@@ -90,7 +103,7 @@ def fw_version(ctx):
 @main.command()
 @click.argument('mode', type=int)
 @click.pass_obj
-def sleep_mode(ctx, mode):
+def sleep(ctx, mode):
     """
     Set sleep MODE 1:sleep 0:wakeup
     """
@@ -113,7 +126,7 @@ def sleep_mode(ctx, mode):
 
 @main.command()
 @click.option('--warmup', default=3, help='Time in sec to warm up the sensor')
-@click.option('--format', default='PRETTY', help='result format (PRETTY|JSON)')
+@click.option('--format', default='PRETTY', help='result format (PRETTY|JSON|PM2.5|PM10)')
 @click.pass_obj
 def dust(ctx, warmup, format):
     """
@@ -135,6 +148,10 @@ def dust(ctx, warmup, format):
                 click.echo(str(pm['pretty']))
             elif 'JSON' in format:
                 click.echo(pm)
+            elif 'PM2.5' in format:
+                click.echo(pm['pm25'])
+            elif 'PM10' in format:
+                click.echo(pm['pm10'])
             else:
                 log.error('Unknown format %s' % format)
                 exit_val = 1

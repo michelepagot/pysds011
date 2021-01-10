@@ -6,7 +6,6 @@ CMD_MODE = 2
 CMD_QUERY_DATA = 4
 CMD_DEVICE_ID = 5
 CMD_SLEEP = 6
-CMD_FIRMWARE = 7
 CMD_WORKING_PERIOD = 8
 MODE_ACTIVE = 0
 
@@ -37,22 +36,33 @@ class SDS011(object):
 
 
     def __construct_command(self, cmd, data=[]):
+        # all commands are 19bytes long
+        #   [1:HEAD] | [1:commandID] | [cmd] | [data] | [2:DESTINATION] | [1:CHECKSUM] | [1:TAIL]
+        # this method is in charge of 6 bytes
+        # user needs to provide 13bytes = 1byte for cmd + some (max12) bytes for data
         assert len(data) <= 12
+        # feel not provided data with zero
         data += [0,]*(12-len(data))
+        #calculate the checksum
         checksum = (sum(data)+cmd-2)%256
-        ret = bytes().fromhex("aab4") + bytes([cmd])
-        #ret += ''.join(chr(x) for x in data)
+        # head:AA  CommandID:B4 --> are common to all PC->Sensor commands
+        ret = bytes().fromhex("aab4")
+        ret += bytes([cmd])
         ret += bytes(data)
-        ret += bytes().fromhex("ffff") + bytes([checksum]) + bytes().fromhex("ab")
+        # FF FF means "Al sensors response"
+        ret += bytes().fromhex("ffff")
+        ret += bytes([checksum])
+        # tail
+        ret += bytes().fromhex("ab")
         self.__dump(ret, '> ')
         return ret
 
 
     def __read_response(self):
-        # initialize it to something not like
-        # 0xAA that is response beginning that
-        # while loop will look for but neither
-        # None that is what is returned at timeout
+        # initialize it to something not like 0xAA
+        # as 0xAA is the response beginning that we are looking for.
+        # None is not a good value for this dummy initialization as
+        # None is the value returned in case of timeout
         byte = b'\xff'
         orig_timeout = self.ser.timeout
         self.ser.timeout = 5.0
@@ -72,6 +82,40 @@ class SDS011(object):
         d = self.ser.read(size=9)
         self.__dump(d, '< ')
         return byte + d
+
+
+    def __response_checksum(self, data):
+        return sum(v for v in data[2:8])%256
+
+
+    def __process_version(self, d):
+        if d is None:
+            self.log.error("Empty data for version")
+            return
+        # Expected response is like
+        # |  AA  |  C5  |   7   | YEAR | MONTH | DAY | DevID1 | DevID2 | CHECKSUM |  AB  |
+        #  head   cmdID  cmdVER |       ------response------           |          | TAIL |
+        # < : little endian
+        # B : unsigned char
+        # H : unsigned short
+        r = struct.unpack('<BBBHBB', d[3:])
+        self.log.debug(r)
+        checksum = self.__response_checksum(d)
+        return "Y: {}, M: {}, D: {}, ID: {}, CRC={}".format(r[0], r[1], r[2], hex(r[3]), "OK" if (checksum==r[4] and r[5]==0xab) else "NOK")
+
+
+    def __process_data(self, d):
+        r = struct.unpack('<HHxxBB', d[2:])
+        pm25 = r[0]/10.0
+        pm10 = r[1]/10.0
+
+        checksum = self.__response_checksum(d)
+
+        res_str = "PM 2.5: {} μg/m^3  PM 10: {} μg/m^3 CRC={}".format(pm25, pm10, "OK" if (checksum==r[2] and r[3]==0xab) else "NOK")
+        if (checksum==r[2] and r[3]==0xab):
+            return {'pm25': pm25, 'pm10': pm10, 'pretty': res_str}
+        else:
+            return None
 
 
     def cmd_set_sleep(self, sleep=1):
@@ -101,34 +145,11 @@ class SDS011(object):
         :return: version description string
         :rtype: string
         """
-        self.ser.write(self.__construct_command(CMD_FIRMWARE))
+        # 7: CMD_FIRMWARE: not needs any PC->Sensor data
+        self.ser.write(self.__construct_command(7))
         d = self.__read_response()
         self.log.debug('fw ver byte:%s', str(d))
         return self.__process_version(d)
-
-
-    def __process_version(self, d):
-        if d is None:
-            self.log.error("Empty data for version")
-            return
-        r = struct.unpack('<BBBHBB', d[3:])
-        self.log.debug(r)
-        checksum = sum(v for v in d[2:8])%256
-        return "Y: {}, M: {}, D: {}, ID: {}, CRC={}".format(r[0], r[1], r[2], hex(r[3]), "OK" if (checksum==r[4] and r[5]==0xab) else "NOK")
-
-
-    def __process_data(self, d):
-        r = struct.unpack('<HHxxBB', d[2:])
-        pm25 = r[0]/10.0
-        pm10 = r[1]/10.0
-
-        checksum = sum(v for v in d[2:8])%256
-
-        res_str = "PM 2.5: {} μg/m^3  PM 10: {} μg/m^3 CRC={}".format(pm25, pm10, "OK" if (checksum==r[2] and r[3]==0xab) else "NOK")
-        if (checksum==r[2] and r[3]==0xab):
-            return {'pm25': pm25, 'pm10': pm10, 'pretty': res_str}
-        else:
-            return None
 
 
     def cmd_query_data(self):
