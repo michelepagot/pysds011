@@ -1,11 +1,12 @@
 name: Python application
 
-on: 
-  workflow_dispatch:
-  jobs:
-    printInputs:
-      runs-on: cubotto1
-      steps:
-          - run: |
-             echo "Log level: ${{ github.event.inputs.logLevel }}"
-             echo "Tags: ${{ github.event.inputs.tags }}"
+on: [workflow_dispatch]
+jobs:
+  example:
+    name: Example Job
+    runs-on: cubotto1
+    steps:
+    - name: paperino
+      run: |
+        echo "Log level: ${{ github.event.inputs.logLevel }}"
+        echo "Tags: ${{ github.event.inputs.tags }}"
