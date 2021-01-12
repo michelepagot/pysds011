@@ -1,12 +1,13 @@
-name: Python application
-
+name: Manual Trigger
 on: [workflow_dispatch]
 jobs:
   example:
     name: Example Job
     runs-on: cubotto1
     steps:
-    - name: paperino
-      run: |
-        echo "Log level: ${{ github.event.inputs.logLevel }}"
-        echo "Tags: ${{ github.event.inputs.tags }}"
+      - name: Clone Repository
+        uses: actions/checkout@v2
+      - name: paperino
+        run: |
+          echo "Log level: ${{ github.event.inputs.logLevel }}"
+          echo "Tags: ${{ github.event.inputs.tags }}"
