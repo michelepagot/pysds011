@@ -14,9 +14,9 @@ jobs:
       #    python-version: 3.9
       - name: Install dependencies
         run: |
-          which python
+          which python3
           which pip3
           pip3 install -e .
-      - name: Lint with flake8
+      - name: Run the script
         run: |
           pysds011 dust
