@@ -1,0 +1,30 @@
+name: Manual Trigger
+on: [workflow_dispatch]
+jobs:
+  stage0:
+    name: Read Dust
+    runs-on: sds011
+    steps:
+      - name: Clone Repository
+        uses: actions/checkout@v2
+      # PYTHON env not available for ARM
+      #- name: Set up Python 3.9
+      #  uses: actions/setup-python@v2
+      #  with:
+      #    python-version: 3.9
+      - name: Create venv
+        run: |
+          which python3
+          which pip3
+          python3 -m virtualenv venv
+          ls
+      - name: Install dependencies
+        run: |
+          source venv/bin/activate
+          which python3
+          which pip3
+          pip3 install -e .
+      - name: Run the script
+        run: |
+          source venv/bin/activate
+          pysds011 dust
