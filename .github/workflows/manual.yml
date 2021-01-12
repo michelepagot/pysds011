@@ -7,7 +7,14 @@ jobs:
     steps:
       - name: Clone Repository
         uses: actions/checkout@v2
-      - name: paperino
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - name: Install dependencies
         run: |
-          echo "Log level: ${{ github.event.inputs.logLevel }}"
-          echo "Tags: ${{ github.event.inputs.tags }}"
+          python -m pip install --upgrade pip
+          pip install -e .
+      - name: Lint with flake8
+        run: |
+          pysds011 dust
