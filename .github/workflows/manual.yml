@@ -1,20 +1,22 @@
 name: Manual Trigger
 on: [workflow_dispatch]
 jobs:
-  example:
-    name: Example Job
+  stage0:
+    name: Read Dust
     runs-on: sds011
     steps:
       - name: Clone Repository
         uses: actions/checkout@v2
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.9
+      # PYTHON env not available for ARM
+      #- name: Set up Python 3.9
+      #  uses: actions/setup-python@v2
+      #  with:
+      #    python-version: 3.9
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -e .
+          which python
+          which pip3
+          pip3 install -e .
       - name: Lint with flake8
         run: |
           pysds011 dust
