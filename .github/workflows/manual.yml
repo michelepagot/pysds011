@@ -3,7 +3,7 @@ on: [workflow_dispatch]
 jobs:
   example:
     name: Example Job
-    runs-on: cubotto1
+    runs-on: sds011
     steps:
       - name: Clone Repository
         uses: actions/checkout@v2
