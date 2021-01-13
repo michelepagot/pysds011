@@ -11,9 +11,8 @@ Bug reports
 When `reporting a bug <https://github.com/michelepagot/pysds011/issues>`_ please include:
 
     * All known details about used dust sensor (vendor, model, revision, sn when available)
-    * Operating system name and version whenre you use the moduel or the cli.
-    * Detailed steps to reproduce the bug.
-    Any details about your local setup that might be helpful in troubleshooting.
+    * Environment informations: Operating system name and version, python version where you are using the module or the cli.
+    * Detailed steps to reproduce the bug indicating your expected behaviour  
 
 Documentation improvements
 ==========================
@@ -43,6 +42,11 @@ If you are proposing a feature:
 Development
 ===========
 
+GIT machinery
+-------------
+
+This repo uses `main` in place of `master` as primary branch name.
+This repo uses `git flow`, so developement mostly take place on `develope` branch.  
 To set up `pysds011` for local development:
 
 1. Fork `pysds011 <https://github.com/michelepagot/pysds011>`_
@@ -51,7 +55,7 @@ To set up `pysds011` for local development:
 
     git clone git@github.com:michelepagot/pysds011.git
 
-3. Create a branch for local development::
+3. Create a branch for local development (maybe from `develope` branch::
 
     git checkout -b name-of-your-bugfix-or-feature
 
@@ -74,7 +78,7 @@ If you need some code review or feedback while you're developing the code just m
 
 For merging, you should:
 
-1. Include passing tests (run ``tox``) [1]_.
+1. Include passing tests (``tox`` will come soon) [1]_.
 2. Update documentation when there's new API, functionality etc.
 3. Add a note to ``CHANGELOG.rst`` about the changes.
 4. Add yourself to ``AUTHORS.rst``.
@@ -84,3 +88,16 @@ For merging, you should:
 
        It will be slower though ...
 
+Run unit testing
+----------------
+This project uses pytest. Tests are in `tests/` folder. This project is `virtualenv` friendly. To create the test environment, run once:: 
+
+  virtualenv venv
+  source venv/bin/activate
+  pip install -e .
+  pip install -r tests/requirements.txt
+
+
+To run tests::
+    
+    pytest tests/

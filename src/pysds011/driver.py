@@ -30,7 +30,8 @@ class SDS011(object):
         return 1
 
     def __dump(self, d, prefix=''):
-        self.log.debug(prefix + d.hex())
+        if d:
+            self.log.debug(prefix + d.hex())
 
     def __construct_command(self, cmd, data=[]):
         # all commands are 19bytes long
@@ -76,6 +77,9 @@ class SDS011(object):
             self.log.debug('No bytes within 5sec')
             return None
         d = self.ser.read(size=9)
+        if d is None:
+            self.log.error('Timeout reading body')
+            return None
         self.__dump(d, '< ')
         return byte + d
 
@@ -109,6 +113,16 @@ class SDS011(object):
             return {'pm25': pm25, 'pm10': pm10, 'pretty': res_str}
         else:
             return None
+
+    def cmd_get_sleep(self):
+        """Get active sleep mode
+
+        :return: True if it is sleeping
+        :rtype: bool
+        """
+        self.ser.write(self.__construct_command(CMD_SLEEP, [0x0, 0x0]))
+        return True
+
 
     def cmd_set_sleep(self, sleep=1):
         """Set sleep mode

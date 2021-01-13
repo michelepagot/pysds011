@@ -87,7 +87,8 @@ def test_cmd_set_sleep_no_replay(mocker):
 def test_cmd_set_sleep_read_malformed_data(mocker):
     log = logging.getLogger("SDS011")
     sm = SerialMock()
-    sm.test_expect_read(b'\xff\xff\xff\xff')
+    sm.test_expect_read(b'\xff')
+    sm.test_expect_read(b'\xff\xff\xff\xff\xff')
     sm.test_expect_read(b'\x11\x11')
 
     d = SDS011(sm, log)
