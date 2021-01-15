@@ -33,7 +33,20 @@ class SDS011(object):
         if d:
             self.log.debug(prefix + d.hex())
 
-    def __construct_command(self, cmd, data=[]):
+    def __construct_command(self, cmd, data=[], dest=b'\xff\xff'):
+        """
+        Assemble packet to write to sensor. This function add
+          - HEAD 1byte at the beginning
+          - CHECKSUM + TAIL at the end
+        :param cmd: Command ID
+        :type cmd: int
+        :param data: data to sent composed by DATA + DESTINATION 2bytes, defaults to []
+        :type data: list, optional
+        :param dest: 2 bytes sensor id, defaults to FF FF
+        :type dest: 2 bytes
+        :return: bytes array ready to be sent to the sensor
+        :rtype: bytes
+        """
         # all commands are 19bytes long
         #   [1:HEAD] | [1:commandID] | [cmd] | [data] | [2:DESTINATION] | [1:CHECKSUM] | [1:TAIL]
         # this method is in charge of 6 bytes
@@ -41,17 +54,15 @@ class SDS011(object):
         assert len(data) <= 12
         # feel not provided data with zero
         data += [0, ]*(12-len(data))
-        # calculate the checksum
-        checksum = (sum(data)+cmd-2) % 256
+        # calculate the checksum: TODO has the dest to be included?
+        checksum = (sum(data)+sum(struct.unpack('<BB',dest))+cmd) % 256
         # head:AA  CommandID:B4 --> are common to all PC->Sensor commands
-        ret = bytes().fromhex("aab4")
+        ret = bytes().fromhex("aab4") # head
         ret += bytes([cmd])
         ret += bytes(data)
-        # FF FF means "Al sensors response"
-        ret += bytes().fromhex("ffff")
+        ret += dest
         ret += bytes([checksum])
-        # tail
-        ret += bytes().fromhex("ab")
+        ret += bytes().fromhex("ab") # tail
         self.__dump(ret, '> ')
         return ret
 
@@ -63,16 +74,21 @@ class SDS011(object):
         byte = b'\xff'
         orig_timeout = self.ser.timeout
         self.ser.timeout = 5.0
+        max_driver_reply_len = 20
 
         # this loop is to aligne to byte
         # that correspond to response beginning
-        while byte is not None and byte != b'\xaa' and 0 != len(byte):
+        while byte is not None and byte != b'\xaa' and 0 != len(byte) and max_driver_reply_len > 0:
+            max_driver_reply_len -= 1
             byte = self.ser.read(size=1)
             if byte is not None:
                 self.log.debug('<first byte:%s:%s:%d', str(byte), str(type(byte)), len(byte))
         # restore timeout of original
         # serial instance injected in constructor
         self.ser.timeout = orig_timeout
+        if max_driver_reply_len == 0:
+            self.log.error('Not get HEAD after 20 read bytes')
+            return None
         if  byte is None or 0 == len(byte):
             self.log.debug('No bytes within 5sec')
             return None
@@ -80,6 +96,14 @@ class SDS011(object):
         if d is None:
             self.log.error('Timeout reading body')
             return None
+
+        checksum = sum(v for v in d[1:-2])%256
+        if checksum != d[-2]:
+            self.log.error('Wrong rep checksum: expected ' + str(checksum) + ' and get ' + str(d[-2]))
+            return None
+        #if b'\xab' != d[-1]: # commented as it always result True
+        #    self.log.error('Wrong TAIL ' + str(d[-1]))
+        #    return None
         self.__dump(d, '< ')
         return byte + d
 
@@ -124,7 +148,7 @@ class SDS011(object):
         return True
 
 
-    def cmd_set_sleep(self, sleep=1):
+    def cmd_set_sleep(self, sleep=1, id=b'\xff\xff'):
         """Set sleep mode
 
         :param sleep: 1:enable sleep mode, 0:wakeup, defaults to 1
@@ -134,7 +158,7 @@ class SDS011(object):
         """
         mode = 0 if sleep else 1
         self.log.debug('mode:%d', mode)
-        self.ser.write(self.__construct_command(CMD_SLEEP, [0x1, mode]))
+        self.ser.write(self.__construct_command(CMD_SLEEP, [0x1, mode], id))
         resp = self.__read_response()
         return resp is not None
 
