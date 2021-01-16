@@ -126,17 +126,23 @@ class SDS011(object):
         return "Y: {}, M: {}, D: {}, ID: {}, CRC={}".format(r[0], r[1], r[2], hex(r[3]), "OK" if (checksum==r[4] and r[5]==0xab) else "NOK")
 
     def __process_data(self, d):
-        r = struct.unpack('<HHxxBB', d[2:])
-        pm25 = r[0]/10.0
-        pm10 = r[1]/10.0
-
+        if d[1] != int(b'0xc0', 16):
+            self.log.error("Not executed as d[1]="+hex(d[1]))
+            return None
         checksum = self.__response_checksum(d)
 
-        res_str = "PM 2.5: {} μg/m^3  PM 10: {} μg/m^3 CRC={}".format(pm25, pm10, "OK" if (checksum==r[2] and r[3]==0xab) else "NOK")
-        if (checksum==r[2] and r[3]==0xab):
-            return {'pm25': pm25, 'pm10': pm10, 'pretty': res_str}
-        else:
+        r = struct.unpack('<HHxxBB', d[2:])
+        if checksum != r[2]:
+            self.log.error("Checksum error")
             return None
+
+        if r[3]==0xab:
+            self.log.error("Wrong tail")
+            return None
+        pm25 = r[0]/10.0
+        pm10 = r[1]/10.0
+        res_str = "PM 2.5: {} μg/m^3  PM 10: {} μg/m^3".format(pm25, pm10)
+        return {'pm25': pm25, 'pm10': pm10, 'pretty': res_str}
 
     def cmd_get_sleep(self):
         """Get active sleep mode
@@ -147,12 +153,13 @@ class SDS011(object):
         self.ser.write(self.__construct_command(CMD_SLEEP, [0x0, 0x0]))
         return True
 
-
     def cmd_set_sleep(self, sleep=1, id=b'\xff\xff'):
         """Set sleep mode
 
         :param sleep: 1:enable sleep mode, 0:wakeup, defaults to 1
         :type sleep: int, optional
+        :param id: sensor id to request mode, defaults to b'\xff\xff' that is 'all'
+        :type id: 2 bytes, optional
         :return: True is set is ok
         :rtype: bool
         """
@@ -162,11 +169,28 @@ class SDS011(object):
         resp = self.__read_response()
         return resp is not None
 
+    def cmd_get_mode(self, id=b'\xff\xff'):
+        """Get active reporting mode
+
+        :param id: sensor id to request mode, defaults to b'\xff\xff' that is 'all'
+        :type id: 2 bytes, optional
+        :return: mode if it is ok, None if error
+        :rtype: int
+        """
+        self.ser.write(self.__construct_command(CMD_MODE, [0x0, 0x0], id))
+        resp = self.__read_response()
+        if resp is None:
+            self.log.error("No valid sensor response")
+            return None
+        return resp[4]
+
     def cmd_set_mode(self, mode=1, id=b'\xff\xff'):
         """Set data reporting mode. The setting is still effective after power off
 
         :param mode: 0：report active mode  1：Report query mode, defaults to 1
         :type mode: int, optional
+        :param id: sensor id to request mode, defaults to b'\xff\xff' that is 'all'
+        :type id: 2 bytes, optional
         :return: True is set is ok
         :rtype: bool
         """
@@ -200,7 +224,6 @@ class SDS011(object):
         if d is None:
             self.log.error("No data from query")
             return None
-        self.log.debug(type(d[0]))
 
         if d[1] == int(b'0xc0', 16):
             return self.__process_data(d)

@@ -35,9 +35,9 @@ def compose_write(data, id):
     return DRIVER_WRITE
 
 
-def compose_response(data):
+def compose_response(data, rsp=RSP_ID):
     CHECKSUM_RSP = bytes([sum(data)%256])
-    return RSP_ID+data+CHECKSUM_RSP+TAIL
+    return rsp+data+CHECKSUM_RSP+TAIL
 
 
 def test_create():
@@ -130,7 +130,7 @@ def test_cmd_set_mode_sensornotapplied():
 def test_cmd_set_mode_docexample():
     """
     Test set data reporting mode
-    example from datasheet
+    example from the datasheet
     """
     ##################
     #   EXPECTATION
@@ -161,6 +161,74 @@ def test_cmd_set_mode_docexample():
     ##################
 
     # check expectation about what driver should sent to sensor
+    production_code_write_to_sensor = sm.test_get_write()
+    assert 1 == len(production_code_write_to_sensor)
+    assert EXPECTED_DRIVER_WRITE == production_code_write_to_sensor[0]
+
+
+def test_cmd_get_mode_active():
+    """
+    Test get data reporting mode: 'active mode'
+    """
+    ##################
+    #   EXPECTATION
+    ##################
+    log = logging.getLogger("SDS011")
+    sm = SerialMock()
+
+    DATA  = b'\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    SENSOR_ID  = b'\xff\xff'
+    EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
+
+    sm.test_expect_read(HEAD)
+    DATA_RSP = b'\x02\x00\x00\x00'
+    SENSOR_ID_RSP = b'\xab\xcd' # simulate that sensor response come from sensor with ABCD id
+    sm.test_expect_read(compose_response(DATA_RSP + SENSOR_ID_RSP))
+
+    ##################
+    #   TEST EXEC
+    ##################
+    d = SDS011(sm, log)
+    assert 0 == d.cmd_get_mode()
+
+    ##################
+    #   VERIFICATION
+    ##################
+
+    production_code_write_to_sensor = sm.test_get_write()
+    assert 1 == len(production_code_write_to_sensor)
+    assert EXPECTED_DRIVER_WRITE == production_code_write_to_sensor[0]
+
+
+def test_cmd_get_mode_query():
+    """
+    Test get data reporting mode: 'query mode'
+    """
+    ##################
+    #   EXPECTATION
+    ##################
+    log = logging.getLogger("SDS011")
+    sm = SerialMock()
+
+    DATA  = b'\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    SENSOR_ID  = b'\xff\xff'
+    EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
+
+    sm.test_expect_read(HEAD)
+    DATA_RSP = b'\x02\x00\x01\x00'
+    SENSOR_ID_RSP = b'\xab\xcd' # simulate that sensor response come from sensor with ABCD id
+    sm.test_expect_read(compose_response(DATA_RSP + SENSOR_ID_RSP))
+
+    ##################
+    #   TEST EXEC
+    ##################
+    d = SDS011(sm, log)
+    assert 1 == d.cmd_get_mode()
+
+    ##################
+    #   VERIFICATION
+    ##################
+
     production_code_write_to_sensor = sm.test_get_write()
     assert 1 == len(production_code_write_to_sensor)
     assert EXPECTED_DRIVER_WRITE == production_code_write_to_sensor[0]
@@ -419,3 +487,40 @@ def test_cmd_get_sleep():
     DATA   = b'\x06\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff'
     CHECKSUM = bytes([sum(DATA)%256])
     assert HEAD + CMD_ID + DATA+ CHECKSUM + TAIL == production_code_write_to_sensor[0]
+
+
+def test_cmd_query_data():
+    """
+    Test query data
+    """
+    ##################
+    #   EXPECTATION
+    ##################
+    log = logging.getLogger("SDS011")
+    sm = SerialMock()
+
+    DATA  = b'\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    SENSOR_ID  = b'\xff\xff'
+    EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
+
+    sm.test_expect_read(HEAD)
+    DATA_RSP = b'\xd4\x04\x3a\x0a'
+    SENSOR_ID_RSP = b'\xab\xcd' # simulate that sensor response come from sensor with ABCD id
+    sm.test_expect_read(compose_response(DATA_RSP + SENSOR_ID_RSP, rsp=b'\xc0'))
+
+    ##################
+    #   TEST EXEC
+    ##################
+    d = SDS011(sm, log)
+    resp = d.cmd_query_data()
+
+    ##################
+    #   VERIFICATION
+    ##################
+
+    production_code_write_to_sensor = sm.test_get_write()
+    assert 1 == len(production_code_write_to_sensor)
+    assert EXPECTED_DRIVER_WRITE == production_code_write_to_sensor[0]
+    assert 123.6 == resp['pm25']
+    assert 261.8 == resp['pm10']
+    assert 'pretty' in resp.keys()
