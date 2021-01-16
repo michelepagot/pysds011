@@ -1,9 +1,6 @@
 from pysds011.driver import SDS011
 import logging
 
-def test_create():
-    d = SDS011(None, None)
-    assert d is not None
 
 class SerialMock(object):
     def __init__(self):
@@ -43,7 +40,133 @@ def compose_response(data):
     return RSP_ID+data+CHECKSUM_RSP+TAIL
 
 
-def test_cmd_set_sleep(mocker):
+def test_create():
+    d = SDS011(None, None)
+    assert d is not None
+
+
+def test_cmd_set_mode():
+    """
+    Test set data reporting mode: 'active mode'
+    """
+    ##################
+    #   EXPECTATION
+    ##################
+
+    # create an artificial, for test purpose, Serial object
+    # it will let the test code to:
+    #   - check what driver will write to sensor
+    #   - decide (simulate) what sensor replay to the driver
+    log = logging.getLogger("SDS011")
+    sm = SerialMock()
+
+    # this is what driver (code under test) is expected to send to the sensor
+    # prepared here but checked later
+    DATA  = b'\x02\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    SENSOR_ID  = b'\xff\xff'
+    EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
+
+    # this is to simulate sensor response
+    sm.test_expect_read(HEAD)
+    DATA_RSP = b'\x02\x01\x00\x00'
+    SENSOR_ID_RSP = b'\xab\xcd' # simulate that sensor response come from sensor with ABCD id
+    sm.test_expect_read(compose_response(DATA_RSP + SENSOR_ID_RSP))
+
+    ##################
+    #   TEST EXEC
+    ##################
+    d = SDS011(sm, log)
+    assert True == d.cmd_set_mode(0)
+
+    ##################
+    #   VERIFICATION
+    ##################
+
+    # check expectation about what driver should sent to sensor
+    production_code_write_to_sensor = sm.test_get_write()
+    assert 1 == len(production_code_write_to_sensor)
+    assert EXPECTED_DRIVER_WRITE == production_code_write_to_sensor[0]
+
+
+def test_cmd_set_mode_sensornotapplied():
+    """
+    Test set data reporting mode
+    but in sensor reply the mode is not what requested
+    """
+    ##################
+    #   EXPECTATION
+    ##################
+
+    log = logging.getLogger("SDS011")
+    sm = SerialMock()
+
+    DATA  = b'\x02\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    SENSOR_ID  = b'\xff\xff'
+    EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
+
+    # this is to simulate sensor response
+    sm.test_expect_read(HEAD)
+    # driver set 0 but sensor replay 1 (3rd byte)
+    DATA_RSP = b'\x02\x01\x01\x00'
+    SENSOR_ID_RSP = b'\xab\xcd' # simulate that sensor response come from sensor with ABCD id
+    sm.test_expect_read(compose_response(DATA_RSP + SENSOR_ID_RSP))
+
+    ##################
+    #   TEST EXEC
+    ##################
+    d = SDS011(sm, log)
+    assert False == d.cmd_set_mode(0)
+
+    ##################
+    #   VERIFICATION
+    ##################
+
+    # check expectation about what driver should sent to sensor
+    production_code_write_to_sensor = sm.test_get_write()
+    assert 1 == len(production_code_write_to_sensor)
+    assert EXPECTED_DRIVER_WRITE == production_code_write_to_sensor[0]
+
+
+def test_cmd_set_mode_docexample():
+    """
+    Test set data reporting mode
+    example from datasheet
+    """
+    ##################
+    #   EXPECTATION
+    ##################
+
+    log = logging.getLogger("SDS011")
+    sm = SerialMock()
+
+    DATA  = b'\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    SENSOR_ID  = b'\xa1\x60'
+    EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
+
+    # this is to simulate sensor response
+    sm.test_expect_read(HEAD)
+    # driver set 0 but sensor replay 1 (3rd byte)
+    DATA_RSP = b'\x02\x01\x01\x00'
+    SENSOR_ID_RSP = SENSOR_ID
+    sm.test_expect_read(compose_response(DATA_RSP + SENSOR_ID_RSP))
+
+    ##################
+    #   TEST EXEC
+    ##################
+    d = SDS011(sm, log)
+    assert True == d.cmd_set_mode(1, SENSOR_ID)
+
+    ##################
+    #   VERIFICATION
+    ##################
+
+    # check expectation about what driver should sent to sensor
+    production_code_write_to_sensor = sm.test_get_write()
+    assert 1 == len(production_code_write_to_sensor)
+    assert EXPECTED_DRIVER_WRITE == production_code_write_to_sensor[0]
+
+
+def test_cmd_set_sleep():
     """
     Test correctly processed set sleep command:
     Send command, set all connected sensors to sleep
@@ -53,20 +176,13 @@ def test_cmd_set_sleep(mocker):
     #   EXPECTATION
     ##################
 
-    # create an artificial for test purpose Serial object
-    # it will let the test code to:
-    #   - check what driver will write to sensor
-    #   - decide (simulate) what sensor replay to the driver
     sm = SerialMock()
     log = logging.getLogger("SDS011")
 
-    # this is what driver (code under test) is expected to send to the sensor
-    # prepared here but checked later
     DATA  = b'\x06\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
     SENSOR_ID  = b'\xff\xff'
     EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
 
-    # this is to simulate sensor response
     sm.test_expect_read(HEAD)
     DATA_RSP = b'\x06\x01\x00\x00'
     SENSOR_ID_RSP = b'\xab\xcd'
@@ -82,13 +198,12 @@ def test_cmd_set_sleep(mocker):
     #   VERIFICATION
     ##################
 
-    # check expectation about what driver should sent to sensor
     production_code_write_to_sensor = sm.test_get_write()
     assert 1 == len(production_code_write_to_sensor)
     assert EXPECTED_DRIVER_WRITE == production_code_write_to_sensor[0]
 
 
-def test_cmd_set_sleep_docexample1(mocker):
+def test_cmd_set_sleep_docexample1():
     """
     Test correctly processed set sleep command
     Send command, set the sensor with ID A160 to sleep
@@ -126,7 +241,7 @@ def test_cmd_set_sleep_docexample1(mocker):
     assert EXPECTED_DRIVER_WRITE == production_code_write_to_sensor[0]
 
 
-def test_cmd_set_sleep_docexample2(mocker):
+def test_cmd_set_sleep_docexample2():
     """
     Test correctly processed set sleep command
     Send command, set the sensor with ID A160 to sleep
@@ -164,7 +279,7 @@ def test_cmd_set_sleep_docexample2(mocker):
     assert EXPECTED_DRIVER_WRITE == production_code_write_to_sensor[0]
 
 
-def test_cmd_set_sleep_wakeup(mocker):
+def test_cmd_set_sleep_wakeup():
     """
     Test correctly processed set sleep command
     in wakeup mode
@@ -200,7 +315,7 @@ def test_cmd_set_sleep_wakeup(mocker):
     assert EXPECTED_DRIVER_WRITE == production_code_write_to_sensor[0]
 
 
-def test_cmd_set_sleep_no_replay(mocker):
+def test_cmd_set_sleep_no_replay():
     """
     Test situation where sensor does not replay to sleep request
     """
@@ -211,7 +326,7 @@ def test_cmd_set_sleep_no_replay(mocker):
     assert False == d.cmd_set_sleep()
 
 
-def test_cmd_set_sleep_read_delayed(mocker):
+def test_cmd_set_sleep_read_delayed():
     """
     Check driver mechanism that look for initial sensor respons
     """
@@ -229,9 +344,9 @@ def test_cmd_set_sleep_read_delayed(mocker):
     assert True == d.cmd_set_sleep()
 
 
-def test_cmd_set_sleep_malformed(mocker):
+def test_cmd_set_sleep_malformed():
     """
-    Check driver behavior is no valid data comes
+    Check driver behavior if no valid data comes
     from sensor for many time (more than max possible read size)
     """
     log = logging.getLogger("SDS011")
@@ -245,7 +360,14 @@ def test_cmd_set_sleep_malformed(mocker):
     assert remaining_not_requested_byte is not None
 
 
-def test_cmd_set_sleep_get_only_head(mocker):
+def test_cmd_set_sleep_get_only_head():
+    """
+    Test driver behavior if sensor only sends HEAD
+    and nothing more
+    """
+    ##################
+    #   EXPECTATION
+    ##################
     log = logging.getLogger("SDS011")
     sm = SerialMock()
     sm.test_expect_read(HEAD)
@@ -261,7 +383,7 @@ def test_cmd_set_sleep_get_only_head(mocker):
     assert HEAD + CMD_ID + DATA+ CHECKSUM + TAIL == production_code_write_to_sensor[0]
 
 
-def test_cmd_set_sleep_wrong_checksum(mocker):
+def test_cmd_set_sleep_wrong_checksum():
     """
     Test correctly processed set sleep command
     """
@@ -275,7 +397,13 @@ def test_cmd_set_sleep_wrong_checksum(mocker):
     assert False == d.cmd_set_sleep()
 
 
-def test_cmd_get_sleep(mocker):
+def test_cmd_get_sleep():
+    """
+    Test correctly processed get sleep command
+    """
+    ##################
+    #   EXPECTATION
+    ##################
     log = logging.getLogger("SDS011")
     sm = SerialMock()
     sm.test_expect_read(HEAD)

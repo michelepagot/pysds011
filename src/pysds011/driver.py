@@ -162,10 +162,24 @@ class SDS011(object):
         resp = self.__read_response()
         return resp is not None
 
-    def cmd_set_mode(self, mode=1):
+    def cmd_set_mode(self, mode=1, id=b'\xff\xff'):
+        """Set data reporting mode. The setting is still effective after power off
+
+        :param mode: 0：report active mode  1：Report query mode, defaults to 1
+        :type mode: int, optional
+        :return: True is set is ok
+        :rtype: bool
+        """
         self.log.debug('mode:%d', mode)
-        self.ser.write(self.__construct_command(CMD_MODE, [0x1, mode]))
-        self.__read_response()
+        self.ser.write(self.__construct_command(CMD_MODE, [0x1, mode], id))
+        resp = self.__read_response()
+        if resp is None:
+            self.log.error("No valid sensor response")
+            return False
+        if mode != resp[4]:
+            self.log.error("Requested configuration not applied")
+            return False
+        return True
 
     def cmd_firmware_ver(self):
         """Get FW version
