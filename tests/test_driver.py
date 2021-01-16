@@ -521,6 +521,7 @@ def test_cmd_query_data():
     production_code_write_to_sensor = sm.test_get_write()
     assert 1 == len(production_code_write_to_sensor)
     assert EXPECTED_DRIVER_WRITE == production_code_write_to_sensor[0]
+    assert resp is not None
     assert 123.6 == resp['pm25']
     assert 261.8 == resp['pm10']
     assert 'pretty' in resp.keys()

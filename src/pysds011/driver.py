@@ -136,7 +136,7 @@ class SDS011(object):
             self.log.error("Checksum error")
             return None
 
-        if r[3]==0xab:
+        if r[3] != 0xab:
             self.log.error("Wrong tail")
             return None
         pm25 = r[0]/10.0
@@ -225,8 +225,4 @@ class SDS011(object):
             self.log.error("No data from query")
             return None
 
-        if d[1] == int(b'0xc0', 16):
-            return self.__process_data(d)
-        else:
-            self.log.error("Not executed as d[1]="+hex(d[1]))
-            return None
+        return self.__process_data(d)
