@@ -123,7 +123,14 @@ class SDS011(object):
         r = struct.unpack('<BBBHBB', d[3:])
         self.log.debug(r)
         checksum = self.__response_checksum(d)
-        return "Y: {}, M: {}, D: {}, ID: {}, CRC={}".format(r[0], r[1], r[2], hex(r[3]), "OK" if (checksum==r[4] and r[5]==0xab) else "NOK")
+        if checksum != r[4] or r[5] != 0xab:
+            return None
+        res = dict()
+        res['year'] = r[0]
+        res['month'] = r[1]
+        res['day'] = r[2]
+        res['pretty'] = "Y: {}, M: {}, D: {}, ID: {}".format(r[0], r[1], r[2], hex(r[3]))
+        return res
 
     def __process_data(self, d):
         if d[1] != int(b'0xc0', 16):
@@ -205,14 +212,14 @@ class SDS011(object):
             return False
         return True
 
-    def cmd_firmware_ver(self):
+    def cmd_firmware_ver(self, id=b'\xff\xff'):
         """Get FW version
 
-        :return: version description string
-        :rtype: string
+        :return: version description dictionary
+        :rtype: dict
         """
         # 7: CMD_FIRMWARE: not needs any PC->Sensor data
-        self.ser.write(self.__construct_command(7))
+        self.ser.write(self.__construct_command(7, dest=id))
         d = self.__read_response()
         self.log.debug('fw ver byte:%s', str(d))
         return self.__process_version(d)
@@ -226,3 +233,54 @@ class SDS011(object):
             return None
 
         return self.__process_data(d)
+
+    def cmd_set_id(self, id, new_id):
+        """Set a device ID to a specific sensor
+
+        :param id: ID of sensor that need a new ID (FF FF is in theory allowed too, but be carefull)
+        :type id: 2 bytes
+        :param new_id: new ID to be assigned
+        :type new_id: 2 bytes
+        :return: operation result
+        :rtype: bool
+        """
+        self.ser.write(self.__construct_command(CMD_DEVICE_ID, [0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, new_id[0], new_id[1]], id))
+        d = self.__read_response()
+        if d is None:
+            self.log.error("Error in sensor response")
+            return False
+        self.log.debug(d[-4:-2])
+        if d[-4] == new_id[0] and d[-3] == new_id[1]:
+            return True
+        return False
+
+    def cmd_set_working_period(self, period=0, id=b'\xff\xff'):
+        """Set working period
+           The setting is still effective after power off,
+           factory default is continuous measurement.
+           The sensor works periodically and reports the latest data.
+
+        :param period: 0：continuous(default), 1-30 minute work 30 seconds and sleep n*60-30 seconds
+        :type period: int
+        :return: result
+        :rtype: bool
+        """
+        if period > 30:
+            return False
+        self.ser.write(self.__construct_command(CMD_WORKING_PERIOD, [0x01, period], id))
+
+        return True
+
+    def cmd_get_working_period(self, id=b'\xff\xff'):
+        """Get current working period
+
+        :return: working period in minutes: work 30 seconds and sleep n*60-30 seconds
+        :rtype: int
+        """
+        self.ser.write(self.__construct_command(CMD_WORKING_PERIOD, [0x00], id))
+        d = self.__read_response()
+        if d is None:
+            self.log.error("Error in sensor response")
+            return None
+        self.log.debug(d)
+        return d[4]

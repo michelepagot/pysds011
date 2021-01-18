@@ -87,9 +87,9 @@ def fw_version(ctx):
         sd.cmd_set_mode(sd.MODE_QUERY)
         fw_str = sd.cmd_firmware_ver()
         if fw_str:
-            click.echo('FW version %s' % fw_str)
+            click.echo('FW version %s' % fw_str['pretty'])
         else:
-            log.error('Empty FW version string')
+            log.error('Invalid FW version')
             exit_val = 1
     except Exception as e:
         log.exception(e)

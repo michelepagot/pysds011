@@ -94,9 +94,9 @@ def test_version(mocker):
     mocker.patch('pysds011.driver.SDS011.cmd_set_sleep')
     mocker.patch('pysds011.driver.SDS011.cmd_set_mode')
     cfv = mocker.patch('pysds011.driver.SDS011.cmd_firmware_ver')
-    cfv.return_value = 'per il momento sono una stringa'
+    cfv.return_value = {'pretty': 'BimBumBam'}
     runner = CliRunner()
     result = runner.invoke(main, ['fw-version'])
 
-    assert 'per il momento sono una stringa' in result.output
+    assert 'BimBumBam' in result.output
     assert result.exit_code == 0
