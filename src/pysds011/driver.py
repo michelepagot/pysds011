@@ -55,14 +55,14 @@ class SDS011(object):
         # feel not provided data with zero
         data += [0, ]*(12-len(data))
         # calculate the checksum: TODO has the dest to be included?
-        checksum = (sum(data)+sum(struct.unpack('<BB',dest))+cmd) % 256
+        checksum = (sum(data)+sum(struct.unpack('<BB', dest))+cmd) % 256
         # head:AA  CommandID:B4 --> are common to all PC->Sensor commands
-        ret = bytes().fromhex("aab4") # head
+        ret = bytes().fromhex("aab4")  # head
         ret += bytes([cmd])
         ret += bytes(data)
         ret += dest
         ret += bytes([checksum])
-        ret += bytes().fromhex("ab") # tail
+        ret += bytes().fromhex("ab")  # tail
         self.__dump(ret, '> ')
         return ret
 
@@ -89,7 +89,7 @@ class SDS011(object):
         if max_driver_reply_len == 0:
             self.log.error('Not get HEAD after 20 read bytes')
             return None
-        if  byte is None or 0 == len(byte):
+        if byte is None or 0 == len(byte):
             self.log.debug('No bytes within 5sec')
             return None
         d = self.ser.read(size=9)
@@ -97,7 +97,7 @@ class SDS011(object):
             self.log.error('Timeout reading body')
             return None
 
-        checksum = sum(v for v in d[1:-2])%256
+        checksum = sum(v for v in d[1:-2]) % 256
         if checksum != d[-2]:
             self.log.error('Wrong rep checksum: expected ' + str(checksum) + ' and get ' + str(d[-2]))
             return None
@@ -108,7 +108,7 @@ class SDS011(object):
         return byte + d
 
     def __response_checksum(self, data):
-        return sum(v for v in data[2:8])%256
+        return sum(v for v in data[2:8]) % 256
 
     def __process_version(self, d):
         if d is None:
@@ -244,7 +244,7 @@ class SDS011(object):
         :return: operation result
         :rtype: bool
         """
-        self.ser.write(self.__construct_command(CMD_DEVICE_ID, [0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, new_id[0], new_id[1]], id))
+        self.ser.write(self.__construct_command(CMD_DEVICE_ID, [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, new_id[0], new_id[1]], id))
         d = self.__read_response()
         if d is None:
             self.log.error("Error in sensor response")

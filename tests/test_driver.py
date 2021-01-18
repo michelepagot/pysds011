@@ -20,23 +20,26 @@ class SerialMock(object):
             return None
 
     def test_expect_read(self, data):
-        self.__read_reg.append({'size' : len(data), 'data': data})
+        self.__read_reg.append({'size': len(data), 'data': data})
 
     def test_get_write(self):
         return self.__write_reg
+
 
 HEAD   = b'\xaa'
 CMD_ID = b'\xb4'
 RSP_ID = b'\xc5'
 TAIL   = b'\xab'
+
+
 def compose_write(data, id):
-    CHECKSUM = bytes([sum(data+id)%256])
+    CHECKSUM = bytes([sum(data+id) % 256])
     DRIVER_WRITE = HEAD + CMD_ID + data + id + CHECKSUM + TAIL
     return DRIVER_WRITE
 
 
 def compose_response(data, rsp=RSP_ID):
-    CHECKSUM_RSP = bytes([sum(data)%256])
+    CHECKSUM_RSP = bytes([sum(data) % 256])
     return rsp+data+CHECKSUM_RSP+TAIL
 
 
@@ -62,21 +65,21 @@ def test_cmd_set_mode():
 
     # this is what driver (code under test) is expected to send to the sensor
     # prepared here but checked later
-    DATA  = b'\x02\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-    SENSOR_ID  = b'\xff\xff'
+    DATA = b'\x02\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    SENSOR_ID = b'\xff\xff'
     EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
 
     # this is to simulate sensor response
     sm.test_expect_read(HEAD)
     DATA_RSP = b'\x02\x01\x00\x00'
-    SENSOR_ID_RSP = b'\xab\xcd' # simulate that sensor response come from sensor with ABCD id
+    SENSOR_ID_RSP = b'\xab\xcd'  # simulate that sensor response come from sensor with ABCD id
     sm.test_expect_read(compose_response(DATA_RSP + SENSOR_ID_RSP))
 
     ##################
     #   TEST EXEC
     ##################
     d = SDS011(sm, log)
-    assert True == d.cmd_set_mode(0)
+    assert d.cmd_set_mode(0)
 
     ##################
     #   VERIFICATION
@@ -100,15 +103,15 @@ def test_cmd_set_mode_sensornotapplied():
     log = logging.getLogger("SDS011")
     sm = SerialMock()
 
-    DATA  = b'\x02\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-    SENSOR_ID  = b'\xff\xff'
+    DATA = b'\x02\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    SENSOR_ID = b'\xff\xff'
     EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
 
     # this is to simulate sensor response
     sm.test_expect_read(HEAD)
     # driver set 0 but sensor replay 1 (3rd byte)
     DATA_RSP = b'\x02\x01\x01\x00'
-    SENSOR_ID_RSP = b'\xab\xcd' # simulate that sensor response come from sensor with ABCD id
+    SENSOR_ID_RSP = b'\xab\xcd'  # simulate that sensor response come from sensor with ABCD id
     sm.test_expect_read(compose_response(DATA_RSP + SENSOR_ID_RSP))
 
     ##################
@@ -139,8 +142,8 @@ def test_cmd_set_mode_docexample():
     log = logging.getLogger("SDS011")
     sm = SerialMock()
 
-    DATA  = b'\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-    SENSOR_ID  = b'\xa1\x60'
+    DATA = b'\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    SENSOR_ID = b'\xa1\x60'
     EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
 
     # this is to simulate sensor response
@@ -154,7 +157,7 @@ def test_cmd_set_mode_docexample():
     #   TEST EXEC
     ##################
     d = SDS011(sm, log)
-    assert True == d.cmd_set_mode(1, SENSOR_ID)
+    assert d.cmd_set_mode(1, SENSOR_ID)
 
     ##################
     #   VERIFICATION
@@ -176,13 +179,13 @@ def test_cmd_get_mode_active():
     log = logging.getLogger("SDS011")
     sm = SerialMock()
 
-    DATA  = b'\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-    SENSOR_ID  = b'\xff\xff'
+    DATA = b'\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    SENSOR_ID = b'\xff\xff'
     EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
 
     sm.test_expect_read(HEAD)
     DATA_RSP = b'\x02\x00\x00\x00'
-    SENSOR_ID_RSP = b'\xab\xcd' # simulate that sensor response come from sensor with ABCD id
+    SENSOR_ID_RSP = b'\xab\xcd'  # simulate that sensor response come from sensor with ABCD id
     sm.test_expect_read(compose_response(DATA_RSP + SENSOR_ID_RSP))
 
     ##################
@@ -210,13 +213,13 @@ def test_cmd_get_mode_query():
     log = logging.getLogger("SDS011")
     sm = SerialMock()
 
-    DATA  = b'\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-    SENSOR_ID  = b'\xff\xff'
+    DATA = b'\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    SENSOR_ID = b'\xff\xff'
     EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
 
     sm.test_expect_read(HEAD)
     DATA_RSP = b'\x02\x00\x01\x00'
-    SENSOR_ID_RSP = b'\xab\xcd' # simulate that sensor response come from sensor with ABCD id
+    SENSOR_ID_RSP = b'\xab\xcd'  # simulate that sensor response come from sensor with ABCD id
     sm.test_expect_read(compose_response(DATA_RSP + SENSOR_ID_RSP))
 
     ##################
@@ -247,8 +250,8 @@ def test_cmd_set_sleep():
     sm = SerialMock()
     log = logging.getLogger("SDS011")
 
-    DATA  = b'\x06\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-    SENSOR_ID  = b'\xff\xff'
+    DATA = b'\x06\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    SENSOR_ID = b'\xff\xff'
     EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
 
     sm.test_expect_read(HEAD)
@@ -260,7 +263,7 @@ def test_cmd_set_sleep():
     #   TEST EXEC
     ##################
     d = SDS011(sm, log)
-    assert True == d.cmd_set_sleep()
+    assert d.cmd_set_sleep()
 
     ##################
     #   VERIFICATION
@@ -285,8 +288,8 @@ def test_cmd_set_sleep_docexample1():
     log = logging.getLogger("SDS011")
     sm = SerialMock()
 
-    DATA  = b'\x06\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-    SENSOR_ID  = b'\xa1\x60'
+    DATA = b'\x06\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    SENSOR_ID = b'\xa1\x60'
     EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
 
     sm.test_expect_read(HEAD)
@@ -299,7 +302,7 @@ def test_cmd_set_sleep_docexample1():
     #   TEST EXEC
     ##################
     d = SDS011(sm, log)
-    assert True == d.cmd_set_sleep(id=SENSOR_ID_RSP)
+    assert d.cmd_set_sleep(id=SENSOR_ID_RSP)
 
     ##################
     #   VERIFICATION
@@ -323,8 +326,8 @@ def test_cmd_set_sleep_docexample2():
     log = logging.getLogger("SDS011")
     sm = SerialMock()
 
-    DATA  = b'\x06\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-    SENSOR_ID  = b'\xa1\x60'
+    DATA = b'\x06\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    SENSOR_ID = b'\xa1\x60'
     EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
 
     sm.test_expect_read(HEAD)
@@ -337,7 +340,7 @@ def test_cmd_set_sleep_docexample2():
     #   TEST EXEC
     ##################
     d = SDS011(sm, log)
-    assert True == d.cmd_set_sleep(sleep=0, id=SENSOR_ID_RSP)
+    assert d.cmd_set_sleep(sleep=0, id=SENSOR_ID_RSP)
 
     ##################
     #   VERIFICATION
@@ -358,8 +361,8 @@ def test_cmd_set_sleep_wakeup():
     log = logging.getLogger("SDS011")
     sm = SerialMock()
 
-    DATA  = b'\x06\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-    SENSOR_ID  = b'\xff\xff'
+    DATA = b'\x06\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    SENSOR_ID = b'\xff\xff'
     EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
 
     sm.test_expect_read(HEAD)
@@ -371,7 +374,7 @@ def test_cmd_set_sleep_wakeup():
     #   TEST EXEC
     ##################
     d = SDS011(sm, log)
-    assert True == d.cmd_set_sleep(0)
+    assert d.cmd_set_sleep(0)
 
     ##################
     #   VERIFICATION
@@ -409,7 +412,7 @@ def test_cmd_set_sleep_read_delayed():
     sm.test_expect_read(compose_response(DATA_RSP + SENSOR_ID_RSP))
 
     d = SDS011(sm, log)
-    assert True == d.cmd_set_sleep()
+    assert d.cmd_set_sleep()
 
 
 def test_cmd_set_sleep_malformed():
@@ -424,7 +427,7 @@ def test_cmd_set_sleep_malformed():
     d = SDS011(sm, log)
     assert False == d.cmd_set_sleep()
     # also check that driver stop before to read 30 bytes (should stop at 20 bytes)
-    remaining_not_requested_byte =  sm.read(1)
+    remaining_not_requested_byte = sm.read(1)
     assert remaining_not_requested_byte is not None
 
 
@@ -446,9 +449,9 @@ def test_cmd_set_sleep_get_only_head():
     # check expectation about what driver should sent to sensor
     production_code_write_to_sensor = sm.test_get_write()
     assert 1 == len(production_code_write_to_sensor)
-    DATA   = b'\x06\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff'
-    CHECKSUM = bytes([sum(DATA)%256])
-    assert HEAD + CMD_ID + DATA+ CHECKSUM + TAIL == production_code_write_to_sensor[0]
+    DATA = b'\x06\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff'
+    CHECKSUM = bytes([sum(DATA) % 256])
+    assert HEAD + CMD_ID + DATA + CHECKSUM + TAIL == production_code_write_to_sensor[0]
 
 
 def test_cmd_set_sleep_wrong_checksum():
@@ -458,8 +461,8 @@ def test_cmd_set_sleep_wrong_checksum():
     log = logging.getLogger("SDS011")
     sm = SerialMock()
     sm.test_expect_read(HEAD)
-    DATA_RSP =  b'\x06\x01\x00\x00\xab\xcd'
-    CHECKSUM_RSP = bytes([sum(DATA_RSP)%256 + 1])
+    DATA_RSP = b'\x06\x01\x00\x00\xab\xcd'
+    CHECKSUM_RSP = bytes([sum(DATA_RSP) % 256 + 1])
     sm.test_expect_read(RSP_ID+DATA_RSP+CHECKSUM_RSP+TAIL)
     d = SDS011(sm, log)
     assert False == d.cmd_set_sleep()
@@ -475,8 +478,8 @@ def test_cmd_get_sleep():
     log = logging.getLogger("SDS011")
     sm = SerialMock()
     sm.test_expect_read(HEAD)
-    DATA_RSP =  b'\x06\x00\x00\x00\xab\xcd'
-    CHECKSUM_RSP = bytes([sum(DATA_RSP)%256])
+    DATA_RSP = b'\x06\x00\x00\x00\xab\xcd'
+    CHECKSUM_RSP = bytes([sum(DATA_RSP) % 256])
     sm.test_expect_read(RSP_ID+DATA_RSP+CHECKSUM_RSP+TAIL)
     d = SDS011(sm, log)
     assert 1 == d.cmd_get_sleep()
@@ -484,9 +487,9 @@ def test_cmd_get_sleep():
     # check expectation about what driver should sent to sensor
     production_code_write_to_sensor = sm.test_get_write()
     assert 1 == len(production_code_write_to_sensor)
-    DATA   = b'\x06\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff'
-    CHECKSUM = bytes([sum(DATA)%256])
-    assert HEAD + CMD_ID + DATA+ CHECKSUM + TAIL == production_code_write_to_sensor[0]
+    DATA = b'\x06\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff'
+    CHECKSUM = bytes([sum(DATA) % 256])
+    assert HEAD + CMD_ID + DATA + CHECKSUM + TAIL == production_code_write_to_sensor[0]
 
 
 def test_cmd_query_data():
@@ -499,13 +502,13 @@ def test_cmd_query_data():
     log = logging.getLogger("SDS011")
     sm = SerialMock()
 
-    DATA  = b'\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-    SENSOR_ID  = b'\xff\xff'
+    DATA = b'\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    SENSOR_ID = b'\xff\xff'
     EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
 
     sm.test_expect_read(HEAD)
     DATA_RSP = b'\xd4\x04\x3a\x0a'
-    SENSOR_ID_RSP = b'\xab\xcd' # simulate that sensor response come from sensor with ABCD id
+    SENSOR_ID_RSP = b'\xab\xcd'  # simulate that sensor response come from sensor with ABCD id
     sm.test_expect_read(compose_response(DATA_RSP + SENSOR_ID_RSP, rsp=b'\xc0'))
 
     ##################
@@ -539,20 +542,20 @@ def test_cmd_set_device_id():
 
     # New device ID [EF FE]
     NEW_ID = b'\xef\xfe'
-    DATA  = b'\x05\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00' + NEW_ID
-    SENSOR_ID  = b'\xab\xcd'
+    DATA = b'\x05\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00' + NEW_ID
+    SENSOR_ID = b'\xab\xcd'
     EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
 
     sm.test_expect_read(HEAD)
     DATA_RSP = b'\x05\x00\x00\x00'
-    SENSOR_ID_RSP =  NEW_ID
+    SENSOR_ID_RSP = NEW_ID
     sm.test_expect_read(compose_response(DATA_RSP + SENSOR_ID_RSP))
 
     ##################
     #   TEST EXEC
     ##################
     d = SDS011(sm, log)
-    assert True == d.cmd_set_id(id=SENSOR_ID, new_id=NEW_ID)
+    assert d.cmd_set_id(id=SENSOR_ID, new_id=NEW_ID)
 
     ##################
     #   VERIFICATION
@@ -576,13 +579,13 @@ def test_cmd_set_device_id_wrongidinreplay():
 
     # New device ID [EF FE]
     NEW_ID = b'\xef\xfe'
-    DATA  = b'\x05\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00' + NEW_ID
-    SENSOR_ID  = b'\xab\xcd'
+    DATA = b'\x05\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00' + NEW_ID
+    SENSOR_ID = b'\xab\xcd'
     EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
 
     sm.test_expect_read(HEAD)
     DATA_RSP = b'\x05\x00\x00\x00'
-    SENSOR_ID_RSP =  b'\xdd\xdd'
+    SENSOR_ID_RSP = b'\xdd\xdd'
     sm.test_expect_read(compose_response(DATA_RSP + SENSOR_ID_RSP))
 
     ##################
@@ -613,13 +616,13 @@ def test_cmd_set_device_id_wrongchecksum():
 
     # New device ID [EF FE]
     NEW_ID = b'\xef\xfe'
-    DATA  = b'\x05\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00' + NEW_ID
-    SENSOR_ID  = b'\xab\xcd'
+    DATA = b'\x05\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00' + NEW_ID
+    SENSOR_ID = b'\xab\xcd'
     EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
 
     sm.test_expect_read(HEAD)
     DATA_RSP = b'\x05\x00\x00\x00' + NEW_ID
-    CHECKSUM_RSP = bytes([sum(DATA_RSP)%256 + 1])
+    CHECKSUM_RSP = bytes([sum(DATA_RSP) % 256 + 1])
     sm.test_expect_read(RSP_ID+DATA_RSP+CHECKSUM_RSP+TAIL)
 
     ##################
@@ -649,20 +652,20 @@ def test_cmd_set_device_id_docexample():
 
     # New device ID [EF FE]
     NEW_ID = b'\xa0\x01'
-    DATA  = b'\x05\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00' + NEW_ID
-    SENSOR_ID  = b'\xa1\x60'
+    DATA = b'\x05\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00' + NEW_ID
+    SENSOR_ID = b'\xa1\x60'
     EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
 
     sm.test_expect_read(HEAD)
     DATA_RSP = b'\x05\x00\x00\x00'
-    SENSOR_ID_RSP =  NEW_ID
+    SENSOR_ID_RSP = NEW_ID
     sm.test_expect_read(compose_response(DATA_RSP + SENSOR_ID_RSP))
 
     ##################
     #   TEST EXEC
     ##################
     d = SDS011(sm, log)
-    assert True == d.cmd_set_id(id=SENSOR_ID, new_id=NEW_ID)
+    assert d.cmd_set_id(id=SENSOR_ID, new_id=NEW_ID)
 
     ##################
     #   VERIFICATION
@@ -683,20 +686,20 @@ def test_cmd_set_working_period_continuous():
     log = logging.getLogger("SDS011")
     sm = SerialMock()
 
-    DATA  = b'\x08\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-    SENSOR_ID  = b'\xff\xff'
+    DATA = b'\x08\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    SENSOR_ID = b'\xff\xff'
     EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
 
     sm.test_expect_read(HEAD)
     DATA_RSP = b'\x08\x01\x00\x00'
-    SENSOR_ID_RSP =  b'\xAB\xCD'
+    SENSOR_ID_RSP = b'\xAB\xCD'
     sm.test_expect_read(compose_response(DATA_RSP + SENSOR_ID_RSP))
 
     ##################
     #   TEST EXEC
     ##################
     d = SDS011(sm, log)
-    assert True == d.cmd_set_working_period(0)
+    assert d.cmd_set_working_period(0)
 
     ##################
     #   VERIFICATION
@@ -718,20 +721,20 @@ def test_cmd_set_working_period_maxnallowed():
     sm = SerialMock()
 
     # 0x1E : 30
-    DATA  = b'\x08\x01\x1e\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-    SENSOR_ID  = b'\xff\xff'
+    DATA = b'\x08\x01\x1e\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    SENSOR_ID = b'\xff\xff'
     EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
 
     sm.test_expect_read(HEAD)
     DATA_RSP = b'\x08\x01\x1e\x00'
-    SENSOR_ID_RSP =  b'\xAB\xCD'
+    SENSOR_ID_RSP = b'\xAB\xCD'
     sm.test_expect_read(compose_response(DATA_RSP + SENSOR_ID_RSP))
 
     ##################
     #   TEST EXEC
     ##################
     d = SDS011(sm, log)
-    assert True == d.cmd_set_working_period(30)
+    assert d.cmd_set_working_period(30)
 
     ##################
     #   VERIFICATION
@@ -751,7 +754,6 @@ def test_cmd_set_working_period_morethanallowed():
     ##################
     log = logging.getLogger("SDS011")
     sm = SerialMock()
-
 
     ##################
     #   TEST EXEC
@@ -777,20 +779,20 @@ def test_cmd_set_working_period_docexample():
     log = logging.getLogger("SDS011")
     sm = SerialMock()
 
-    DATA  = b'\x08\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-    SENSOR_ID  = b'\xa1\x60'
+    DATA = b'\x08\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    SENSOR_ID = b'\xa1\x60'
     EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
 
     sm.test_expect_read(HEAD)
     DATA_RSP = b'\x08\x01\x01\x00'
-    SENSOR_ID_RSP =  SENSOR_ID
+    SENSOR_ID_RSP = SENSOR_ID
     sm.test_expect_read(compose_response(DATA_RSP + SENSOR_ID_RSP))
 
     ##################
     #   TEST EXEC
     ##################
     d = SDS011(sm, log)
-    assert True == d.cmd_set_working_period(1, id=SENSOR_ID)
+    assert d.cmd_set_working_period(1, id=SENSOR_ID)
 
     ##################
     #   VERIFICATION
@@ -811,13 +813,13 @@ def test_cmd_get_working_period():
     log = logging.getLogger("SDS011")
     sm = SerialMock()
 
-    DATA  = b'\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-    SENSOR_ID  = b'\xff\xff'
+    DATA = b'\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    SENSOR_ID = b'\xff\xff'
     EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
 
     sm.test_expect_read(HEAD)
     DATA_RSP = b'\x08\x00\x00\x00'
-    SENSOR_ID_RSP =  b'\xAB\xCD'
+    SENSOR_ID_RSP = b'\xAB\xCD'
     sm.test_expect_read(compose_response(DATA_RSP + SENSOR_ID_RSP))
 
     ##################
@@ -846,13 +848,13 @@ def test_cmd_get_working_period_docexample():
     log = logging.getLogger("SDS011")
     sm = SerialMock()
 
-    DATA  = b'\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-    SENSOR_ID  = b'\xa1\x60'
+    DATA = b'\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    SENSOR_ID = b'\xa1\x60'
     EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
 
     sm.test_expect_read(HEAD)
     DATA_RSP = b'\x08\x00\x02\x00'
-    SENSOR_ID_RSP =  SENSOR_ID
+    SENSOR_ID_RSP = SENSOR_ID
     sm.test_expect_read(compose_response(DATA_RSP + SENSOR_ID_RSP))
 
     ##################
@@ -880,13 +882,13 @@ def test_cmd_get_firmware_version():
     log = logging.getLogger("SDS011")
     sm = SerialMock()
 
-    DATA  = b'\x07\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-    SENSOR_ID  = b'\xff\xff'
+    DATA = b'\x07\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    SENSOR_ID = b'\xff\xff'
     EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
 
     sm.test_expect_read(HEAD)
     DATA_RSP = b'\x07\x01\x02\x03'
-    SENSOR_ID_RSP =  b'\xAB\xCD'
+    SENSOR_ID_RSP = b'\xAB\xCD'
     sm.test_expect_read(compose_response(DATA_RSP + SENSOR_ID_RSP))
 
     ##################
@@ -921,13 +923,13 @@ def test_cmd_get_firmware_version_docexample():
     log = logging.getLogger("SDS011")
     sm = SerialMock()
 
-    DATA  = b'\x07\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-    SENSOR_ID  = b'\xA1\x60'
+    DATA = b'\x07\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    SENSOR_ID = b'\xA1\x60'
     EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
 
     sm.test_expect_read(HEAD)
     DATA_RSP = b'\x07\x0f\x07\x0a'
-    SENSOR_ID_RSP =  SENSOR_ID
+    SENSOR_ID_RSP = SENSOR_ID
     sm.test_expect_read(compose_response(DATA_RSP + SENSOR_ID_RSP))
 
     ##################

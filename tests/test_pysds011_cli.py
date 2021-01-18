@@ -1,7 +1,7 @@
 
 from click.testing import CliRunner
 
-from pysds011.cli import main, fw_version
+from pysds011.cli import main
 from serial import SerialException
 
 
@@ -9,11 +9,6 @@ def test_noargs(mocker):
     '''
     Run the cli with no arguments print the help and return 0
     '''
-    #mocker.patch('serial.Serial.open')
-    #mocker.patch('serial.Serial.flushInput')
-    #mocker.patch('serial.Serial.write')
-    #mocker.patch('serial.Serial.read')
-    #mocker.patch('serial.Serial.close')
     runner = CliRunner()
     result = runner.invoke(main, [])
 
@@ -32,7 +27,7 @@ def test_option_help(mocker):
     assert result.exit_code == 0
 
 
-def test_option_help(mocker):
+def test_option_nosubcommand(mocker):
     '''
     Run the cli with some base option but with no sub-command
     is not allowed
@@ -70,7 +65,7 @@ def test_subcommand_dust(mocker):
     cqd = mocker.patch('pysds011.driver.SDS011.cmd_query_data')
     # 'pretty' is truly a cmd_query_data output field,
     # 'woman' is just a film citation
-    cqd.return_value = {'pretty' : 'woman'}
+    cqd.return_value = {'pretty': 'woman'}
 
     runner = CliRunner()
     result = runner.invoke(main, ['dust'])
