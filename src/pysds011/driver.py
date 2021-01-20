@@ -30,6 +30,13 @@ class SDS011(object):
         return 1
 
     def __dump(self, d, prefix=''):
+        """Dump bytes as string on the debug log channel
+
+        :param d: bytes to dump
+        :type d: bytes
+        :param prefix: string to prepend, defaults to ''
+        :type prefix: str, optional
+        """
         if d:
             self.log.debug(prefix + d.hex())
 
@@ -67,6 +74,11 @@ class SDS011(object):
         return ret
 
     def __read_response(self):
+        """Read data from the sensor
+
+        :return: read bytes
+        :rtype: bytes or None in case of error
+        """
         # initialize it to something not like 0xAA
         # as 0xAA is the response beginning that we are looking for.
         # None is not a good value for this dummy initialization as
@@ -111,6 +123,13 @@ class SDS011(object):
         return sum(v for v in data[2:8]) % 256
 
     def __process_version(self, d):
+        """Get bytes and validate them and eventually return a version dictionary
+
+        :param d: input raw bytes from the sensor
+        :type d: bytes
+        :return: version dictionary or None if error
+        :rtype: dict
+        """
         if d is None:
             self.log.error("Empty data for version")
             return
@@ -224,8 +243,15 @@ class SDS011(object):
         self.log.debug('fw ver byte:%s', str(d))
         return self.__process_version(d)
 
-    def cmd_query_data(self):
-        self.ser.write(self.__construct_command(CMD_QUERY_DATA))
+    def cmd_query_data(self, id=b'\xff\xff'):
+        """Read dust values from the sensor
+
+        :param id: Sensor ID, defaults to b'\xff\xff'
+        :type id: 2 bytes, optional
+        :return: dust data as dictionary
+        :rtype: dict
+        """
+        self.ser.write(self.__construct_command(CMD_QUERY_DATA, dest=id))
         d = self.__read_response()
         self.log.debug(d)
         if d is None:

@@ -530,6 +530,44 @@ def test_cmd_query_data():
     assert 'pretty' in resp.keys()
 
 
+def test_cmd_query_data_fromaspecificsensor():
+    """
+    Test query data using a specific sensor ID
+    """
+    ##################
+    #   EXPECTATION
+    ##################
+    log = logging.getLogger("SDS011")
+    sm = SerialMock()
+
+    DATA = b'\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    SENSOR_ID = b'\xAB\xCD'
+    EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
+
+    sm.test_expect_read(HEAD)
+    DATA_RSP = b'\xd4\x04\x3a\x0a'
+    SENSOR_ID_RSP = SENSOR_ID
+    sm.test_expect_read(compose_response(DATA_RSP + SENSOR_ID_RSP, rsp=b'\xc0'))
+
+    ##################
+    #   TEST EXEC
+    ##################
+    d = SDS011(sm, log)
+    resp = d.cmd_query_data(id=SENSOR_ID)
+
+    ##################
+    #   VERIFICATION
+    ##################
+
+    production_code_write_to_sensor = sm.test_get_write()
+    assert 1 == len(production_code_write_to_sensor)
+    assert EXPECTED_DRIVER_WRITE == production_code_write_to_sensor[0]
+    assert resp is not None
+    assert 123.6 == resp['pm25']
+    assert 261.8 == resp['pm10']
+    assert 'pretty' in resp.keys()
+
+
 def test_cmd_set_device_id():
     """
     Test set device ID API

@@ -31,22 +31,27 @@ click_log.basic_config(log)
 
 
 class Context(object):
-    def __init__(self, ser=None):
+    def __init__(self, ser=None, id=None):
         self.serial = ser
+        self.id = id
 
 
 @click.group()
 @click.option('--port', default='/dev/ttyUSB0', help='UART port to communicate with dust sensor.')
+@click.option('--id', help='ID of sensor to use. If not provided, the driver will internally use FFFF that targets all.')
 @click_log.simple_verbosity_option(log)
 @click.pass_context
-def main(ctx, port):
+def main(ctx, port, id):
     """
     pysds011 cli app entry point
     """
     main_ser = serial.Serial()
     main_ser.port = port
     main_ser.baudrate = 9600
-    ctx.obj = Context(ser=main_ser)
+    sensor_id = None
+    if id:
+        sensor_id = bytes.fromhex(id)
+    ctx.obj = Context(ser=main_ser, id=sensor_id)
     log.debug('Process subcommands')
 
 
@@ -103,7 +108,7 @@ def fw_version(ctx):
 
 
 @main.command()
-@click.argument('mode', type=int)
+@click.argument('mode', type=click.Choice(['0', '1']))
 @click.pass_obj
 def sleep(ctx, mode):
     """
@@ -111,12 +116,14 @@ def sleep(ctx, mode):
     """
     sd = None
     exit_val = 0
-    log.debug('BEGIN mode:%d' % mode)
+    log.debug('BEGIN mode:%d' % int(mode))
     try:
         ctx.serial.open()
         ctx.serial.flushInput()
         sd = driver.SDS011(ctx.serial, log)
-        sd.cmd_set_sleep(mode)
+        if not sd.cmd_set_sleep(mode):
+            log.error('cmd_set_sleep error')
+            exit_val = 1
     except Exception as e:
         log.exception(e)
         exit_val = 1
@@ -144,7 +151,7 @@ def dust(ctx, warmup, format):
         sd.cmd_set_sleep(0)
         sd.cmd_set_mode(sd.MODE_QUERY)
         time.sleep(warmup)
-        pm = sd.cmd_query_data()
+        pm = sd.cmd_query_data(id=ctx.id)
         if pm is not None:
             if 'PRETTY' in format:
                 click.echo(str(pm['pretty']))
