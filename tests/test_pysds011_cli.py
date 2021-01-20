@@ -126,6 +126,18 @@ def test_sleep(mocker):
     css = mocker.patch('pysds011.driver.SDS011.cmd_set_sleep')
     runner = CliRunner()
     result = runner.invoke(main, ['sleep', '1'])
+    css.assert_called_once_with(1, id=None)
+
+    assert result.exit_code == 0
+
+
+def test_sleep_with_id(mocker):
+    mocker.patch('serial.Serial.open')
+    mocker.patch('serial.Serial.flushInput')
+    css = mocker.patch('pysds011.driver.SDS011.cmd_set_sleep')
+    runner = CliRunner()
+    result = runner.invoke(main, ['--id', 'ABCD', 'sleep', '1'])
+    css.assert_called_once_with(1, id=b'\xab\xcd')
 
     assert result.exit_code == 0
 
@@ -155,3 +167,16 @@ def test_sleep_driver_error(mocker):
     result = runner.invoke(main, ['sleep', '0'])
 
     assert result.exit_code == 1
+
+
+def test_get_sleep(mocker):
+    mocker.patch('serial.Serial.open')
+    mocker.patch('serial.Serial.flushInput')
+    cgs = mocker.patch('pysds011.driver.SDS011.cmd_get_sleep')
+    cgs.return_value = 1
+    runner = CliRunner()
+    result = runner.invoke(main, ['sleep'])
+    cgs.assert_called_once_with()
+
+    assert '1' in result.output
+    assert result.exit_code == 0

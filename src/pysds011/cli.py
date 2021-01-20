@@ -51,6 +51,8 @@ def main(ctx, port, id):
     sensor_id = None
     if id:
         sensor_id = bytes.fromhex(id)
+    else:
+        sensor_id = b'\xff\xff'
     ctx.obj = Context(ser=main_ser, id=sensor_id)
     log.debug('Process subcommands')
 
@@ -108,22 +110,26 @@ def fw_version(ctx):
 
 
 @main.command()
-@click.argument('mode', type=click.Choice(['0', '1']))
+@click.argument('mode', type=click.Choice(['0', '1']), required=False)
 @click.pass_obj
 def sleep(ctx, mode):
     """
     Set sleep MODE 1:sleep 0:wakeup
+    Just 'sleep' without a number result in querying the actual value applied in the sensor
     """
     sd = None
     exit_val = 0
-    log.debug('BEGIN mode:%d' % int(mode))
     try:
         ctx.serial.open()
         ctx.serial.flushInput()
         sd = driver.SDS011(ctx.serial, log)
-        if not sd.cmd_set_sleep(mode):
-            log.error('cmd_set_sleep error')
-            exit_val = 1
+        if mode:
+            log.debug('BEGIN cli mode:%d' % int(mode))
+            if not sd.cmd_set_sleep(int(mode), id=ctx.id):
+                log.error('cmd_set_sleep error')
+                exit_val = 1
+        else:
+            click.echo(sd.cmd_get_sleep())
     except Exception as e:
         log.exception(e)
         exit_val = 1

@@ -441,6 +441,11 @@ def test_cmd_set_sleep_get_only_head():
     ##################
     log = logging.getLogger("SDS011")
     sm = SerialMock()
+
+    DATA = b'\x06\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    SENSOR_ID = b'\xff\xff'
+    EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
+
     sm.test_expect_read(HEAD)
 
     d = SDS011(sm, log)
@@ -449,9 +454,7 @@ def test_cmd_set_sleep_get_only_head():
     # check expectation about what driver should sent to sensor
     production_code_write_to_sensor = sm.test_get_write()
     assert 1 == len(production_code_write_to_sensor)
-    DATA = b'\x06\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff'
-    CHECKSUM = bytes([sum(DATA) % 256])
-    assert HEAD + CMD_ID + DATA + CHECKSUM + TAIL == production_code_write_to_sensor[0]
+    assert EXPECTED_DRIVER_WRITE == production_code_write_to_sensor[0]
 
 
 def test_cmd_set_sleep_wrong_checksum():
@@ -461,14 +464,15 @@ def test_cmd_set_sleep_wrong_checksum():
     log = logging.getLogger("SDS011")
     sm = SerialMock()
     sm.test_expect_read(HEAD)
-    DATA_RSP = b'\x06\x01\x00\x00\xab\xcd'
+    DATA_RSP = b'\x06\x01\x00\x00'
+    SENSOR_ID_RSP = b'\xab\xcd'
     CHECKSUM_RSP = bytes([sum(DATA_RSP) % 256 + 1])
-    sm.test_expect_read(RSP_ID+DATA_RSP+CHECKSUM_RSP+TAIL)
+    sm.test_expect_read(RSP_ID+DATA_RSP+SENSOR_ID_RSP+CHECKSUM_RSP+TAIL)
     d = SDS011(sm, log)
     assert False == d.cmd_set_sleep()
 
 
-def test_cmd_get_sleep():
+def test_cmd_get_sleep_sleepingsensor():
     """
     Test correctly processed get sleep command
     """
@@ -477,19 +481,79 @@ def test_cmd_get_sleep():
     ##################
     log = logging.getLogger("SDS011")
     sm = SerialMock()
+
+    DATA = b'\x06\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    SENSOR_ID = b'\xff\xff'
+    EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
     sm.test_expect_read(HEAD)
-    DATA_RSP = b'\x06\x00\x00\x00\xab\xcd'
-    CHECKSUM_RSP = bytes([sum(DATA_RSP) % 256])
-    sm.test_expect_read(RSP_ID+DATA_RSP+CHECKSUM_RSP+TAIL)
+
+    DATA_RSP = b'\x06\x00\x00\x00'
+    SENSOR_ID_RSP = b'\xab\xcd'
+    sm.test_expect_read(compose_response(DATA_RSP + SENSOR_ID_RSP))
     d = SDS011(sm, log)
-    assert 1 == d.cmd_get_sleep()
+    assert True == d.cmd_get_sleep()
 
     # check expectation about what driver should sent to sensor
     production_code_write_to_sensor = sm.test_get_write()
     assert 1 == len(production_code_write_to_sensor)
-    DATA = b'\x06\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff'
-    CHECKSUM = bytes([sum(DATA) % 256])
-    assert HEAD + CMD_ID + DATA + CHECKSUM + TAIL == production_code_write_to_sensor[0]
+    assert EXPECTED_DRIVER_WRITE == production_code_write_to_sensor[0]
+
+
+def test_cmd_get_sleep_awakesensor():
+    """
+    Test correctly processed get sleep command, sensor is not sleeping
+    """
+    ##################
+    #   EXPECTATION
+    ##################
+    log = logging.getLogger("SDS011")
+    sm = SerialMock()
+    DATA = b'\x06\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    SENSOR_ID = b'\xff\xff'
+    EXPECTED_DRIVER_WRITE = compose_write(DATA, SENSOR_ID)
+
+    sm.test_expect_read(HEAD)
+    DATA_RSP = b'\x06\x00\x01\x00'
+    SENSOR_ID_RSP = b'\xab\xcd'
+    sm.test_expect_read(compose_response(DATA_RSP + SENSOR_ID_RSP))
+    d = SDS011(sm, log)
+    assert False == d.cmd_get_sleep()
+
+    # check expectation about what driver should sent to sensor
+    production_code_write_to_sensor = sm.test_get_write()
+    assert 1 == len(production_code_write_to_sensor)
+    assert EXPECTED_DRIVER_WRITE == production_code_write_to_sensor[0]
+
+
+def test_cmd_get_sleep_noresponse():
+    """
+    Test correctly processed get sleep command, sensor is not sleeping
+    """
+    ##################
+    #   EXPECTATION
+    ##################
+    log = logging.getLogger("SDS011")
+    sm = SerialMock()
+    d = SDS011(sm, log)
+    assert d.cmd_get_sleep() is None
+
+
+def test_cmd_get_sleep_invalid():
+    """
+    Test correctly processed get sleep command, sensor is not sleeping
+    """
+    ##################
+    #   EXPECTATION
+    ##################
+    log = logging.getLogger("SDS011")
+    sm = SerialMock()
+
+    sm.test_expect_read(HEAD)
+    DATA_RSP = b'\x06\x00\x02\x00' # 2 is not valid status
+    SENSOR_ID_RSP = b'\xab\xcd'
+    sm.test_expect_read(compose_response(DATA_RSP + SENSOR_ID_RSP))
+    d = SDS011(sm, log)
+    assert d.cmd_get_sleep() is None
 
 
 def test_cmd_query_data():
