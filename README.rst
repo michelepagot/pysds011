@@ -2,7 +2,6 @@
 Overview
 ========
 
-
 Simple python driver for SDS011 PM sensor from Nova.
 
 * Free software: MIT license
@@ -16,7 +15,7 @@ Installation
 
 You can also install the in-development version with::
 
-    pip install https://github.com/michelepagot/pysds011/archive/master.zip
+    pip install https://github.com/michelepagot/pysds011/archive/develop.zip
 
 Usage
 =====

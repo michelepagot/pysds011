@@ -1,4 +1,9 @@
+#!/usr/bin/python
 # coding=utf-8
+"""
+Module that implements low level communication with Nove SDS011 sensor.
+"""
+
 import struct
 
 DEBUG = 1
@@ -177,8 +182,8 @@ class SDS011(object):
 
         Take care that sensor will not response to it if it is sleeping. So mainly
         this API will return 0 or None. None could means:
-          - I'm sleeping, so I cannot reply
-          - I'm not sleeping but something went wrong as responding
+        - I'm sleeping, so I cannot reply
+        - I'm not sleeping but something went wrong as responding
 
         :return: True if it is sleeping, False if wakeup, None in case of communication error
         :rtype: bool
