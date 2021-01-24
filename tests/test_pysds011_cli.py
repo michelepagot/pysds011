@@ -70,7 +70,7 @@ def test_subcommand_dust(mocker):
     runner = CliRunner()
     result = runner.invoke(main, ['dust'])
 
-    cqd.assert_called_once_with(id=None)
+    cqd.assert_called_once_with(id=b'\xff\xff')
     assert 'woman' in result.output
     assert result.exit_code == 0
 
@@ -120,13 +120,28 @@ def test_version(mocker):
     assert result.exit_code == 0
 
 
-def test_sleep(mocker):
+def test_sleep_set(mocker):
+    """Set the sleep mode 1:SLEEP
+    """
     mocker.patch('serial.Serial.open')
     mocker.patch('serial.Serial.flushInput')
     css = mocker.patch('pysds011.driver.SDS011.cmd_set_sleep')
     runner = CliRunner()
     result = runner.invoke(main, ['sleep', '1'])
-    css.assert_called_once_with(1, id=None)
+    css.assert_called_once_with(1, id=b'\xff\xff')
+
+    assert result.exit_code == 0
+
+
+def test_sleep_set_wakeup(mocker):
+    """Set the sleep mode 0:WAKEUP
+    """
+    mocker.patch('serial.Serial.open')
+    mocker.patch('serial.Serial.flushInput')
+    css = mocker.patch('pysds011.driver.SDS011.cmd_set_sleep')
+    runner = CliRunner()
+    result = runner.invoke(main, ['sleep', '0'])
+    css.assert_called_once_with(0, id=b'\xff\xff')
 
     assert result.exit_code == 0
 
@@ -169,14 +184,90 @@ def test_sleep_driver_error(mocker):
     assert result.exit_code == 1
 
 
-def test_get_sleep(mocker):
+def test_sleep_get(mocker):
+    """Run 'sleep' without any parameter
+    result in asking to sensor the actual applied value
+    """
     mocker.patch('serial.Serial.open')
     mocker.patch('serial.Serial.flushInput')
     cgs = mocker.patch('pysds011.driver.SDS011.cmd_get_sleep')
     cgs.return_value = 1
     runner = CliRunner()
     result = runner.invoke(main, ['sleep'])
-    cgs.assert_called_once_with()
+    cgs.assert_called_once_with(id=b'\xff\xff')
 
     assert '1' in result.output
+    assert result.exit_code == 0
+
+
+def test_slepp_get_at_id(mocker):
+    """get actual sleep mode of a particular sensor id
+    """
+    mocker.patch('serial.Serial.open')
+    mocker.patch('serial.Serial.flushInput')
+    cgs = mocker.patch('pysds011.driver.SDS011.cmd_get_sleep')
+    runner = CliRunner()
+    result = runner.invoke(main, ['--id', 'ABCD', 'sleep'])
+    cgs.assert_called_once_with(id=b'\xab\xcd')
+
+    assert result.exit_code == 0
+
+
+def test_mode_set(mocker):
+    mocker.patch('serial.Serial.open')
+    mocker.patch('serial.Serial.flushInput')
+    css = mocker.patch('pysds011.driver.SDS011.cmd_set_mode')
+    runner = CliRunner()
+    result = runner.invoke(main, ['mode', '1'])
+    css.assert_called_once_with(1, id=b'\xff\xff')
+
+    assert result.exit_code == 0
+
+
+def test_mode_set_active(mocker):
+    mocker.patch('serial.Serial.open')
+    mocker.patch('serial.Serial.flushInput')
+    css = mocker.patch('pysds011.driver.SDS011.cmd_set_mode')
+    runner = CliRunner()
+    result = runner.invoke(main, ['mode', '1'])
+    css.assert_called_once_with(1, id=b'\xff\xff')
+
+    assert result.exit_code == 0
+
+
+def test_mode_set_query(mocker):
+    mocker.patch('serial.Serial.open')
+    mocker.patch('serial.Serial.flushInput')
+    css = mocker.patch('pysds011.driver.SDS011.cmd_set_mode')
+    runner = CliRunner()
+    result = runner.invoke(main, ['mode', '0'])
+    css.assert_called_once_with(0, id=b'\xff\xff')
+
+    assert result.exit_code == 0
+
+
+def test_mode_get(mocker):
+    """get actual acquisition mode by not providing any value
+    after 'mode'
+    """
+    mocker.patch('serial.Serial.open')
+    mocker.patch('serial.Serial.flushInput')
+    cgs = mocker.patch('pysds011.driver.SDS011.cmd_get_mode')
+    runner = CliRunner()
+    result = runner.invoke(main, ['mode'])
+    cgs.assert_called_once_with(id=b'\xff\xff')
+
+    assert result.exit_code == 0
+
+
+def test_mode_get_at_id(mocker):
+    """get actual acquisition of a particular sensor id
+    """
+    mocker.patch('serial.Serial.open')
+    mocker.patch('serial.Serial.flushInput')
+    cgs = mocker.patch('pysds011.driver.SDS011.cmd_get_mode')
+    runner = CliRunner()
+    result = runner.invoke(main, ['--id', 'ABCD', 'mode'])
+    cgs.assert_called_once_with(id=b'\xab\xcd')
+
     assert result.exit_code == 0

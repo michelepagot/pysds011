@@ -114,7 +114,7 @@ def fw_version(ctx):
 @click.pass_obj
 def sleep(ctx, mode):
     """
-    Set sleep MODE 1:sleep 0:wakeup
+    Get and Set sleep MODE 1:sleep 0:wakeup
     Just 'sleep' without a number result in querying the actual value applied in the sensor
     """
     sd = None
@@ -124,12 +124,43 @@ def sleep(ctx, mode):
         ctx.serial.flushInput()
         sd = driver.SDS011(ctx.serial, log)
         if mode:
-            log.debug('BEGIN cli mode:%d' % int(mode))
+            log.debug('BEGIN cli query mode:%d' % int(mode))
             if not sd.cmd_set_sleep(int(mode), id=ctx.id):
                 log.error('cmd_set_sleep error')
                 exit_val = 1
         else:
-            click.echo(sd.cmd_get_sleep())
+            click.echo(sd.cmd_get_sleep(id=ctx.id))
+    except Exception as e:
+        log.exception(e)
+        exit_val = 1
+    finally:
+        ctx.serial.close()
+    log.debug('END exit_val:%d' % exit_val)
+    return exit_val
+
+
+@main.command()
+@click.argument('mode', type=click.Choice(['0', '1']), required=False)
+@click.pass_obj
+def mode(ctx, mode):
+    """
+    Get and Set acquisition MODE [0,1]
+    1: QUERY mode：Sensor received query data command to report a measurement data.
+    0: ACTIVE mode：Sensor automatically reports a measurement data in a work period.
+    """
+    sd = None
+    exit_val = 0
+    try:
+        ctx.serial.open()
+        ctx.serial.flushInput()
+        sd = driver.SDS011(ctx.serial, log)
+        if mode:
+            log.debug('BEGIN cli acquisition mode:%d' % int(mode))
+            if not sd.cmd_set_mode(int(mode), id=ctx.id):
+                log.error('cmd_set_mode error')
+                exit_val = 1
+        else:
+            click.echo(sd.cmd_get_mode(id=ctx.id))
     except Exception as e:
         log.exception(e)
         exit_val = 1

@@ -235,7 +235,7 @@ class SDS011(object):
     def cmd_set_mode(self, mode=1, id=b'\xff\xff'):
         """Set data reporting mode. The setting is still effective after power off
 
-        :param mode: 0：report active mode  1：Report query mode, defaults to 1
+        :param mode: 0：report active mode  1：report query mode, defaults to 1
         :type mode: int, optional
         :param id: sensor id to request mode, defaults to b'\xff\xff' that is 'all'
         :type id: 2 bytes, optional
@@ -297,7 +297,8 @@ class SDS011(object):
         """
         assert id is not None
         assert new_id is not None
-        self.ser.write(self.__construct_command(CMD_DEVICE_ID, [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, new_id[0], new_id[1]], id))
+
+        self.ser.write(self.__construct_command(CMD_DEVICE_ID, [0, ]*10 + [new_id[0], new_id[1]], id))
         d = self.__read_response()
         if d is None:
             self.log.error("Error in sensor response")
