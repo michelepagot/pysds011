@@ -23,6 +23,7 @@ import logging
 import serial
 import sys
 import time
+import json
 
 FORMAT = "[%(filename)s:%(lineno)s - %(funcName)15s()]::%(message)s"
 logging.basicConfig(format=FORMAT, level=logging.DEBUG)
@@ -185,15 +186,21 @@ def dust(ctx, warmup, format):
         ctx.serial.open()
         ctx.serial.flushInput()
         sd = driver.SDS011(ctx.serial, log)
-        sd.cmd_set_sleep(0)
-        sd.cmd_set_mode(sd.MODE_QUERY)
+        if sd.cmd_set_sleep(0, id=ctx.id) is not True:
+            log.error('WakeUp failure')
+            exit_val = 1
+            return  # this jump to finally
+        if sd.cmd_set_mode(sd.MODE_QUERY, id=ctx.id) is not True:
+            log.error('Set MODE_QUERY failure')
+            exit_val = 1
+            return  # this jump to finally
         time.sleep(warmup)
         pm = sd.cmd_query_data(id=ctx.id)
         if pm is not None:
             if 'PRETTY' in format:
                 click.echo(str(pm['pretty']))
             elif 'JSON' in format:
-                click.echo(pm)
+                click.echo(json.dumps(pm))
             elif 'PM2.5' in format:
                 click.echo(pm['pm25'])
             elif 'PM10' in format:
@@ -208,8 +215,9 @@ def dust(ctx, warmup, format):
         log.exception(e)
         exit_val = 1
     finally:
+        log.debug('Dust finally')
         if sd is not None:
-            sd.cmd_set_sleep(1)
+            sd.cmd_set_sleep(1, id=ctx.id)
         ctx.serial.close()
     log.debug('END exit_val:%d' % exit_val)
     return exit_val

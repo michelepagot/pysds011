@@ -177,7 +177,7 @@ class SDS011(object):
         res_str = "PM 2.5: {} μg/m^3  PM 10: {} μg/m^3".format(pm25, pm10)
         return {'pm25': pm25, 'pm10': pm10, 'pretty': res_str}
 
-    def cmd_get_sleep(self):
+    def cmd_get_sleep(self,  id=b'\xff\xff'):
         """Get active sleep mode
 
         Take care that sensor will not response to it if it is sleeping. So mainly
@@ -185,10 +185,12 @@ class SDS011(object):
         - I'm sleeping, so I cannot reply
         - I'm not sleeping but something went wrong as responding
 
+        :param id: sensor id to request sleep status, defaults to b'\xff\xff' that is 'all'
+        :type id: 2 bytes, optional
         :return: True if it is sleeping, False if wakeup, None in case of communication error
         :rtype: bool
         """
-        self.ser.write(self.__construct_command(CMD_SLEEP, [0x0, 0x0]))
+        self.ser.write(self.__construct_command(CMD_SLEEP, [0x0, 0x0], id))
         resp = self.__read_response()
         if resp is None:
             self.log.error("No sensor response")
