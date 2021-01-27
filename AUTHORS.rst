@@ -2,4 +2,4 @@
 Authors
 =======
 
-* Michele Pagot - https://michelepagot.github.io/
+Michele Pagot - https://michelepagot.github.io/

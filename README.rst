@@ -47,7 +47,7 @@ Some other interesting reading are:
 * This project is inspired by https://gist.github.com/kadamski/92653913a53baf9dd1a8
 
 
-Development
-===========
+Contributing
+============
 
-This repo just decide to adopt git flow strategy ...
+Have a look at CONTRIBUTING.rst or to the Development section in the documentation
