@@ -45,10 +45,14 @@ First stop should be the embedded help. Here just an outdated version of it::
     pysds011.exe --help
 
     Usage: pysds011 [OPTIONS] COMMAND [ARGS]...
+
       pysds011 cli app entry point
 
     Options:
       --port TEXT          UART port to communicate with dust sensor.
+      --id TEXT            ID of sensor to use. If not provided, the driver will
+                           internally use FFFF that targets all.
+
       -v, --verbosity LVL  Either CRITICAL, ERROR, WARNING, INFO or DEBUG
       --help               Show this message and exit.
 
@@ -56,9 +60,11 @@ First stop should be the embedded help. Here just an outdated version of it::
       dust        Get dust value
       fw-version  Get SDS011 FW version
       help        Get specific help of a command
-      sleep       Set sleep MODE 1:sleep 0:wakeup
+      mode        Get and Set acquisition MODE [0,1] 1: QUERY mode：Sensor...
+      sleep       Get and Set sleep MODE 1:sleep 0:wakeup Just 'sleep' without
+                  a...
 
-And each command has its own help::
+And each command has its own ``help``::
 
     pysds011.exe help dust
 
@@ -71,11 +77,12 @@ And each command has its own help::
       --format TEXT     result format (PRETTY|JSON|PM2.5|PM10)
       --help            Show this message and exit.
 
-*Nova SDS011* sensor is connected to your machine through UART, so to read the actual dust value, you need to provide a **port** value::
+*Nova SDS011* sensor is connected to your machine through UART, so to read the actual ``dust`` value, you need to provide a **port** value::
 
     pysds011.exe --port COM4 dust
+    PM 2.5: 25.9 μg/m^3  PM 10: 62.4 μg/m^3 CRC=OK
 
-        PM 2.5: 25.9 μg/m^3  PM 10: 62.4 μg/m^3 CRC=OK
+.. WARNING:: ``dust`` command changes both ``mode`` and ``sleep``. In particular it leave the sensor sleeping
 
 Dust value can be presented in **multiple format**:
 
@@ -84,7 +91,7 @@ Dust value can be presented in **multiple format**:
 * JSON::
 
     pysds011.exe --port COM4 dust --format JSON
-    {'pm25': 28.4, 'pm10': 118.6, 'pretty': 'PM 2.5: 28.4 μg/m^3  PM 10: 118.6 μg/m^3 CRC=OK'}
+    {'pm25': 15.6, 'pm10': 21.8, 'pretty': 'PM 2.5: 15.6 μg/m^3  PM 10: 21.8 μg/m^3'}
 
 * Single PM::
 
@@ -98,8 +105,21 @@ Read the dust sensor FW version::
 
     pysds011.exe --port COM4 fw-version
 
-    FW version Y: 18, M: 11, D: 16, ID: 0xe748, CRC=OK
+    FW version Y: 18, M: 11, D: 16, ID: 0xe748
 
+Set the sensor in ``sleep`` more::
 
+    pysds011.exe --port COM4 sleep 1
 
+Take care that in sleep mode the only accepted command is the one to **wakeup**::
 
+    pysds011.exe --port COM4 sleep 0
+
+``mode`` command is about the sensor acquisition mode
+* 0：report active mode
+* 1：report query mode
+
+Both the ``sleep`` and ``mode`` commands, asserted without and value, read the actual sensor configuration::
+
+    pysds011.exe --port COM4 mode
+    1
