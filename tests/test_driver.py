@@ -1073,6 +1073,7 @@ def test_cmd_get_firmware_version():
     assert 2 == res['month']
     assert 'day' in res.keys()
     assert 3 == res['day']
+    assert SENSOR_ID_RSP == res['id']
     assert 'pretty' in res.keys()
 
 

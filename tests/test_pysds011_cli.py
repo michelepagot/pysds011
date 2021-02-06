@@ -41,7 +41,16 @@ def test_option_nosubcommand(mocker):
     assert result.exit_code == 2
 
 
-def test_subcommand_help(mocker):
+def test_main_notExistinPort(mocker):
+    mocker.patch('serial.Serial.open', side_effect=SerialException())
+    mocker.patch('serial.Serial.close')
+    runner = CliRunner()
+    result = runner.invoke(main, ['--port', 'COM42', 'dust'])
+
+    assert result.exit_code == 1
+
+
+def test_help(mocker):
     '''
     The cli support an help subcommand to retrieve specific
     help about a sub-command
@@ -55,14 +64,16 @@ def test_subcommand_help(mocker):
     assert result.exit_code == 0
 
 
-def test_subcommand_dust(mocker):
+def test_dust(mocker):
     '''
     Read dust
     '''
     mocker.patch('serial.Serial.open')
     mocker.patch('serial.Serial.flushInput')
-    mocker.patch('pysds011.driver.SDS011.cmd_set_sleep')
-    mocker.patch('pysds011.driver.SDS011.cmd_set_mode')
+    css = mocker.patch('pysds011.driver.SDS011.cmd_set_sleep')
+    css.return_value = True
+    csm = mocker.patch('pysds011.driver.SDS011.cmd_set_mode')
+    csm.return_value = True
     mocker.patch('time.sleep')
     cqd = mocker.patch('pysds011.driver.SDS011.cmd_query_data')
     # 'pretty' is a keys of cmd_query_data output field,
@@ -77,14 +88,16 @@ def test_subcommand_dust(mocker):
     assert result.exit_code == 0
 
 
-def test_subcommand_dust_with_id(mocker):
+def test_dust_with_id(mocker):
     '''
     Read dust of a specific sensor
     '''
     mocker.patch('serial.Serial.open')
     mocker.patch('serial.Serial.flushInput')
     css = mocker.patch('pysds011.driver.SDS011.cmd_set_sleep')
+    css.return_value = True
     csm = mocker.patch('pysds011.driver.SDS011.cmd_set_mode')
+    csm.return_value = True
     mocker.patch('time.sleep')
     cqd = mocker.patch('pysds011.driver.SDS011.cmd_query_data')
     # 'pretty' is a keys of cmd_query_data output field,
@@ -102,14 +115,16 @@ def test_subcommand_dust_with_id(mocker):
     cqd.assert_called_once_with(id=b'\xab\xcd')
 
 
-def test_subcommand_dust_with_format_json(mocker):
+def test_dust_format_json(mocker):
     '''
     Use dust command with JSON as output format
     '''
     mocker.patch('serial.Serial.open')
     mocker.patch('serial.Serial.flushInput')
-    mocker.patch('pysds011.driver.SDS011.cmd_set_sleep')
-    mocker.patch('pysds011.driver.SDS011.cmd_set_mode')
+    css = mocker.patch('pysds011.driver.SDS011.cmd_set_sleep')
+    css.return_value = True
+    csm = mocker.patch('pysds011.driver.SDS011.cmd_set_mode')
+    csm.return_value = True
     mocker.patch('time.sleep')
     cqd = mocker.patch('pysds011.driver.SDS011.cmd_query_data')
     # 'pretty' is a keys of cmd_query_data output field,
@@ -125,15 +140,17 @@ def test_subcommand_dust_with_format_json(mocker):
     assert result.exit_code == 0
 
 
-def test_subcommand_dust_with_format_pm25(mocker):
+def test_dust_with_format_pm25(mocker):
     '''
     Use dust command with PM2.5 format and check that
     only the corresponding value is printed out
     '''
     mocker.patch('serial.Serial.open')
     mocker.patch('serial.Serial.flushInput')
-    mocker.patch('pysds011.driver.SDS011.cmd_set_sleep')
-    mocker.patch('pysds011.driver.SDS011.cmd_set_mode')
+    css = mocker.patch('pysds011.driver.SDS011.cmd_set_sleep')
+    css.return_value = True
+    csm = mocker.patch('pysds011.driver.SDS011.cmd_set_mode')
+    csm.return_value = True
     mocker.patch('time.sleep')
     cqd = mocker.patch('pysds011.driver.SDS011.cmd_query_data')
     # 'pretty' is a keys of cmd_query_data output field,
@@ -146,14 +163,16 @@ def test_subcommand_dust_with_format_pm25(mocker):
     assert result.exit_code == 0
 
 
-def test_subcommand_dust_with_invalid_format(mocker):
+def test_dust_with_invalid_format(mocker):
     '''
     Use dust command with not supported as output format
     '''
     mocker.patch('serial.Serial.open')
     mocker.patch('serial.Serial.flushInput')
-    mocker.patch('pysds011.driver.SDS011.cmd_set_sleep')
-    mocker.patch('pysds011.driver.SDS011.cmd_set_mode')
+    css = mocker.patch('pysds011.driver.SDS011.cmd_set_sleep')
+    css.return_value = True
+    csm = mocker.patch('pysds011.driver.SDS011.cmd_set_mode')
+    csm.return_value = True
     mocker.patch('time.sleep')
     cqd = mocker.patch('pysds011.driver.SDS011.cmd_query_data')
     # 'pretty' is a keys of cmd_query_data output field,
@@ -165,16 +184,24 @@ def test_subcommand_dust_with_invalid_format(mocker):
     assert result.exit_code == 1
 
 
-def test_main_notExistinPort(mocker):
-    mocker.patch('serial.Serial.open', side_effect=SerialException())
+def test_dust_error_wakeup(mocker):
+    '''
+    Use dust command, driver error at wakeup
+    '''
+    mocker.patch('serial.Serial.open')
+    mocker.patch('serial.Serial.flushInput')
+    css = mocker.patch('pysds011.driver.SDS011.cmd_set_sleep')
+    css.return_value = False
     mocker.patch('serial.Serial.close')
-    runner = CliRunner()
-    result = runner.invoke(main, ['--port', 'COM42', 'dust'])
 
+    runner = CliRunner()
+    result = runner.invoke(main, ['dust'])
     assert result.exit_code == 1
 
 
 def test_version(mocker):
+    """ Get the sensor firmware version
+    """
     mocker.patch('serial.Serial.open')
     mocker.patch('serial.Serial.flushInput')
     mocker.patch('pysds011.driver.SDS011.cmd_set_sleep')
@@ -184,6 +211,41 @@ def test_version(mocker):
     runner = CliRunner()
     result = runner.invoke(main, ['fw-version'])
 
+    assert 'BimBumBam' in result.output
+    assert result.exit_code == 0
+
+
+def test_fw_version_json_format(mocker):
+    mocker.patch('serial.Serial.open')
+    mocker.patch('serial.Serial.flushInput')
+    mocker.patch('pysds011.driver.SDS011.cmd_set_sleep')
+    mocker.patch('pysds011.driver.SDS011.cmd_set_mode')
+    cfv = mocker.patch('pysds011.driver.SDS011.cmd_firmware_ver')
+    cfv.return_value = {'pretty': 'BimBumBam'}
+    runner = CliRunner()
+    result = runner.invoke(main, ['fw-version', '--format', 'JSON'])
+    obj = json.loads(result.output)
+
+    assert 'BimBumBam' in obj['pretty']
+    assert result.exit_code == 0
+
+
+def test_fw_version(mocker):
+    """Test fw_version comand
+    By default it use the PRETTY format
+    Pretty format has an intro text like "FW version"
+    then it print 'pretty' field in driver response
+    """
+    mocker.patch('serial.Serial.open')
+    mocker.patch('serial.Serial.flushInput')
+    mocker.patch('pysds011.driver.SDS011.cmd_set_sleep')
+    mocker.patch('pysds011.driver.SDS011.cmd_set_mode')
+    cfv = mocker.patch('pysds011.driver.SDS011.cmd_firmware_ver')
+    cfv.return_value = {'pretty': 'BimBumBam'}
+    runner = CliRunner()
+    result = runner.invoke(main, ['fw-version'])
+
+    assert 'FW version' in result.output
     assert 'BimBumBam' in result.output
     assert result.exit_code == 0
 
@@ -338,4 +400,47 @@ def test_mode_get_at_id(mocker):
     result = runner.invoke(main, ['--id', 'ABCD', 'mode'])
     cgs.assert_called_once_with(id=b'\xab\xcd')
 
+    assert result.exit_code == 0
+
+
+def test_id_set(mocker):
+    """ Set a sensor id
+    """
+    mocker.patch('serial.Serial.open')
+    mocker.patch('serial.Serial.flushInput')
+    csi = mocker.patch('pysds011.driver.SDS011.cmd_set_id')
+    runner = CliRunner()
+    result = runner.invoke(main, ['--id', 'cccc', 'id', 'abcd'])
+    csi.assert_called_once_with(id=b'\xcc\xcc', new_id=b'\xab\xcd')
+    assert result.exit_code == 0
+
+
+def test_is_set_without_original_id(mocker):
+    """ Set a sensor id without to specify original id
+    result in an error
+    """
+    mocker.patch('pysds011.driver.SDS011.cmd_set_id')
+    runner = CliRunner()
+    result = runner.invoke(main, ['id', 'abcd'])
+    assert result.exit_code != 0
+
+
+def test_id_get(mocker):
+    """Run 'id' without any parameter
+    result in asking to sensor its id
+    As a dedicated get_id sensor command does not exist,
+    and as to ask a specific id to a specific sensor
+    I should neet its id ... but why I'm asking for an id if I need the id
+    and as in any case each command replay with the id
+    it is made with a trick: the cmd_firmware_ver is sent
+    with FFFF, id is extracted by all sensors that replay to me
+    """
+    mocker.patch('serial.Serial.open')
+    mocker.patch('serial.Serial.flushInput')
+    cfv = mocker.patch('pysds011.driver.SDS011.cmd_firmware_ver')
+    cfv.return_value = {'id': b'\x12\x34', 'paperino': 'maciomicio'}
+    runner = CliRunner()
+    result = runner.invoke(main, ['id'])
+
+    assert '12' in result.output and '34' in result.output
     assert result.exit_code == 0
