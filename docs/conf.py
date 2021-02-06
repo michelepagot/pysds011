@@ -36,7 +36,9 @@ version = release = '0.0.3'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
+    'sphinx.ext.autosectionlabel',
     'sphinx.ext.extlinks',
+    'sphinx_click',
 ]
 
 # Add any paths that contain templates here, relative to this directory.

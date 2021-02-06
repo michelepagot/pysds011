@@ -2,6 +2,6 @@
 Installation
 ============
 
-At the command line::
-
-    pip install pysds011
+.. include:: ../README.rst
+   :start-after: Installation
+   :end-before: Usage

@@ -3,12 +3,13 @@ Welcome to pysds011's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Document map:
 
    readme
    installation
    usage
    api
+   contributing
    authors
    changelog
 

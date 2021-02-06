@@ -23,6 +23,7 @@ import logging
 import serial
 import sys
 import time
+import json
 
 FORMAT = "[%(filename)s:%(lineno)s - %(funcName)15s()]::%(message)s"
 logging.basicConfig(format=FORMAT, level=logging.DEBUG)
@@ -31,22 +32,29 @@ click_log.basic_config(log)
 
 
 class Context(object):
-    def __init__(self, ser=None):
+    def __init__(self, ser=None, id=None):
         self.serial = ser
+        self.id = id
 
 
 @click.group()
 @click.option('--port', default='/dev/ttyUSB0', help='UART port to communicate with dust sensor.')
+@click.option('--id', help='ID of sensor to use. If not provided, the driver will internally use FFFF that targets all.')
 @click_log.simple_verbosity_option(log)
 @click.pass_context
-def main(ctx, port):
+def main(ctx, port, id):
     """
     pysds011 cli app entry point
     """
     main_ser = serial.Serial()
     main_ser.port = port
     main_ser.baudrate = 9600
-    ctx.obj = Context(ser=main_ser)
+    sensor_id = None
+    if id:
+        sensor_id = bytes.fromhex(id)
+    else:
+        sensor_id = b'\xff\xff'
+    ctx.obj = Context(ser=main_ser, id=sensor_id)
     log.debug('Process subcommands')
 
 
@@ -71,8 +79,9 @@ def help(ctx, subcommand):
 
 
 @main.command()
+@click.option('--format', default='PRETTY', help='result format (PRETTY|JSON|PM2.5|PM10)')
 @click.pass_obj
-def fw_version(ctx):
+def fw_version(ctx, format):
     """
     Get SDS011 FW version
     """
@@ -87,7 +96,13 @@ def fw_version(ctx):
         sd.cmd_set_mode(sd.MODE_QUERY)
         fw_str = sd.cmd_firmware_ver()
         if fw_str:
-            click.echo('FW version %s' % fw_str['pretty'])
+            if 'PRETTY' in format:
+                click.echo('FW version %s' % fw_str['pretty'])
+            elif 'JSON' in format:
+                click.echo(json.dumps(fw_str))
+            else:
+                log.error('Unknown format %s' % format)
+                exit_val = 1
         else:
             log.error('Invalid FW version')
             exit_val = 1
@@ -103,20 +118,57 @@ def fw_version(ctx):
 
 
 @main.command()
-@click.argument('mode', type=int)
+@click.argument('mode', type=click.Choice(['0', '1']), required=False)
 @click.pass_obj
 def sleep(ctx, mode):
     """
-    Set sleep MODE 1:sleep 0:wakeup
+    Get and Set sleep MODE 1:sleep 0:wakeup
+    Just 'sleep' without a number result in querying the actual value applied in the sensor
     """
     sd = None
     exit_val = 0
-    log.debug('BEGIN mode:%d' % mode)
     try:
         ctx.serial.open()
         ctx.serial.flushInput()
         sd = driver.SDS011(ctx.serial, log)
-        sd.cmd_set_sleep(mode)
+        if mode:
+            log.debug('BEGIN cli query mode:%d' % int(mode))
+            if not sd.cmd_set_sleep(int(mode), id=ctx.id):
+                log.error('cmd_set_sleep error')
+                exit_val = 1
+        else:
+            click.echo(sd.cmd_get_sleep(id=ctx.id))
+    except Exception as e:
+        log.exception(e)
+        exit_val = 1
+    finally:
+        ctx.serial.close()
+    log.debug('END exit_val:%d' % exit_val)
+    return exit_val
+
+
+@main.command()
+@click.argument('mode', type=click.Choice(['0', '1']), required=False)
+@click.pass_obj
+def mode(ctx, mode):
+    """
+    Get and Set acquisition MODE [0,1]
+    1: QUERY mode：Sensor received query data command to report a measurement data.
+    0: ACTIVE mode：Sensor automatically reports a measurement data in a work period.
+    """
+    sd = None
+    exit_val = 0
+    try:
+        ctx.serial.open()
+        ctx.serial.flushInput()
+        sd = driver.SDS011(ctx.serial, log)
+        if mode:
+            log.debug('BEGIN cli acquisition mode:%d' % int(mode))
+            if not sd.cmd_set_mode(int(mode), id=ctx.id):
+                log.error('cmd_set_mode error')
+                exit_val = 1
+        else:
+            click.echo(sd.cmd_get_mode(id=ctx.id))
     except Exception as e:
         log.exception(e)
         exit_val = 1
@@ -141,15 +193,21 @@ def dust(ctx, warmup, format):
         ctx.serial.open()
         ctx.serial.flushInput()
         sd = driver.SDS011(ctx.serial, log)
-        sd.cmd_set_sleep(0)
-        sd.cmd_set_mode(sd.MODE_QUERY)
+        if sd.cmd_set_sleep(0, id=ctx.id) is not True:
+            log.error('WakeUp failure')
+            exit_val = 1
+            return exit_val  # this jump to finally
+        if sd.cmd_set_mode(sd.MODE_QUERY, id=ctx.id) is not True:
+            log.error('Set MODE_QUERY failure')
+            exit_val = 1
+            return exit_val  # this jump to finally
         time.sleep(warmup)
-        pm = sd.cmd_query_data()
+        pm = sd.cmd_query_data(id=ctx.id)
         if pm is not None:
             if 'PRETTY' in format:
                 click.echo(str(pm['pretty']))
             elif 'JSON' in format:
-                click.echo(pm)
+                click.echo(json.dumps(pm))
             elif 'PM2.5' in format:
                 click.echo(pm['pm25'])
             elif 'PM10' in format:
@@ -164,8 +222,38 @@ def dust(ctx, warmup, format):
         log.exception(e)
         exit_val = 1
     finally:
+        log.debug('Dust finally')
         if sd is not None:
-            sd.cmd_set_sleep(1)
+            sd.cmd_set_sleep(1, id=ctx.id)
+        ctx.serial.close()
+    log.debug('END exit_val:%d' % exit_val)
+    return exit_val
+
+
+@main.command()
+@click.argument('id', required=False)
+@click.pass_obj
+def id(ctx, id):
+    """
+    Get and set the sensor address
+    """
+    sd = None
+    exit_val = 0
+    log.debug('BEGIN')
+    try:
+        ctx.serial.open()
+        ctx.serial.flushInput()
+        sd = driver.SDS011(ctx.serial, log)
+        if id:
+            sd.cmd_set_id(id=ctx.id, new_id=bytes.fromhex(id))
+        else:
+            fw = sd.cmd_firmware_ver(id=ctx.id)
+            log.debug("fw:"+str(fw)+" fw['id'][0]"+str(fw['id'][0])+" fw['id'][1]"+str(fw['id'][1]))
+            click.echo(str(hex(fw['id'][0])) + ' ' + str(hex(fw['id'][1])))
+    except Exception as e:
+        log.exception(e)
+        exit_val = 1
+    finally:
         ctx.serial.close()
     log.debug('END exit_val:%d' % exit_val)
     return exit_val

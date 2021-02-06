@@ -15,5 +15,8 @@ Low level layer that is in charge to manage communication with the sensor. This 
 
 CLI app API
 ###########
-.. automodule:: pysds011.cli
-    :members:
+Command line interface documentation
+
+.. click:: pysds011.cli:main
+  :prog: pysds011
+  :nested: full

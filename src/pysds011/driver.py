@@ -1,4 +1,9 @@
+#!/usr/bin/python
 # coding=utf-8
+"""
+Module that implements low level communication with Nove SDS011 sensor.
+"""
+
 import struct
 
 DEBUG = 1
@@ -30,6 +35,13 @@ class SDS011(object):
         return 1
 
     def __dump(self, d, prefix=''):
+        """Dump bytes as string on the debug log channel
+
+        :param d: bytes to dump
+        :type d: bytes
+        :param prefix: string to prepend, defaults to ''
+        :type prefix: str, optional
+        """
         if d:
             self.log.debug(prefix + d.hex())
 
@@ -52,8 +64,10 @@ class SDS011(object):
         # this method is in charge of 6 bytes
         # user needs to provide 13bytes = 1byte for cmd + some (max12) bytes for data
         assert len(data) <= 12
+        self.log.debug("data:" + str(data) + " dest:" + str(dest))
         # feel not provided data with zero
         data += [0, ]*(12-len(data))
+        self.log.debug("Resized data:" + str(data))
         # calculate the checksum: TODO has the dest to be included?
         checksum = (sum(data)+sum(struct.unpack('<BB', dest))+cmd) % 256
         # head:AA  CommandID:B4 --> are common to all PC->Sensor commands
@@ -67,6 +81,11 @@ class SDS011(object):
         return ret
 
     def __read_response(self):
+        """Read data from the sensor
+
+        :return: read bytes
+        :rtype: bytes or None in case of error
+        """
         # initialize it to something not like 0xAA
         # as 0xAA is the response beginning that we are looking for.
         # None is not a good value for this dummy initialization as
@@ -101,7 +120,7 @@ class SDS011(object):
         if checksum != d[-2]:
             self.log.error('Wrong rep checksum: expected ' + str(checksum) + ' and get ' + str(d[-2]))
             return None
-        #if b'\xab' != d[-1]: # commented as it always result True
+        # if b'\xab' != d[-1]: # commented as it always result True
         #    self.log.error('Wrong TAIL ' + str(d[-1]))
         #    return None
         self.__dump(d, '< ')
@@ -111,6 +130,13 @@ class SDS011(object):
         return sum(v for v in data[2:8]) % 256
 
     def __process_version(self, d):
+        """Get bytes and validate them and eventually return a version dictionary
+
+        :param d: input raw bytes from the sensor
+        :type d: bytes
+        :return: version dictionary or None if error
+        :rtype: dict
+        """
         if d is None:
             self.log.error("Empty data for version")
             return
@@ -120,16 +146,28 @@ class SDS011(object):
         # < : little endian
         # B : unsigned char
         # H : unsigned short
-        r = struct.unpack('<BBBHBB', d[3:])
+        r = struct.unpack('<BBBBBBB', d[3:])
         self.log.debug(r)
         checksum = self.__response_checksum(d)
-        if checksum != r[4] or r[5] != 0xab:
+        if checksum != r[5]:
+            self.log.error('Checksum error')
+            return None
+        if r[6] != 0xab:
+            self.log.error('Tail error')
             return None
         res = dict()
         res['year'] = r[0]
         res['month'] = r[1]
         res['day'] = r[2]
-        res['pretty'] = "Y: {}, M: {}, D: {}, ID: {}".format(r[0], r[1], r[2], hex(r[3]))
+        # how many square brakets on the right side
+        # of the next line :-)
+        # r[3] is an integer and bytes accept both
+        #  bytest(int) and bytes([])
+        # but bytes(int) means gimme an int long bytes array
+        # and bytes([]) means tlaslate int array to bytes array
+        # so bytes([r[3]]) means : gimmi a byte array with one element of value r[3]
+        res['id'] = bytes([r[3], r[4]])
+        res['pretty'] = "Y: {}, M: {}, D: {}, ID: {}".format(r[0], r[1], r[2], hex(res['id'][0])+hex(res['id'][1]))
         return res
 
     def __process_data(self, d):
@@ -151,14 +189,28 @@ class SDS011(object):
         res_str = "PM 2.5: {} μg/m^3  PM 10: {} μg/m^3".format(pm25, pm10)
         return {'pm25': pm25, 'pm10': pm10, 'pretty': res_str}
 
-    def cmd_get_sleep(self):
+    def cmd_get_sleep(self,  id=b'\xff\xff'):
         """Get active sleep mode
 
-        :return: True if it is sleeping
+        Take care that sensor will not response to it if it is sleeping. So mainly
+        this API will return 0 or None. None could means:
+        - I'm sleeping, so I cannot reply
+        - I'm not sleeping but something went wrong as responding
+
+        :param id: sensor id to request sleep status, defaults to b'\xff\xff' that is 'all'
+        :type id: 2 bytes, optional
+        :return: True if it is sleeping, False if wakeup, None in case of communication error
         :rtype: bool
         """
-        self.ser.write(self.__construct_command(CMD_SLEEP, [0x0, 0x0]))
-        return True
+        self.ser.write(self.__construct_command(CMD_SLEEP, [0x0, 0x0], id))
+        resp = self.__read_response()
+        if resp is None:
+            self.log.error("No sensor response")
+            return None
+        if 0 != resp[4] and 1 != resp[4]:
+            self.log.error("No valid sensor response %d", resp[4])
+            return None
+        return 0 == resp[4]
 
     def cmd_set_sleep(self, sleep=1, id=b'\xff\xff'):
         """Set sleep mode
@@ -170,8 +222,10 @@ class SDS011(object):
         :return: True is set is ok
         :rtype: bool
         """
+        assert id is not None
+        self.log.debug('is:%s', str(id))
         mode = 0 if sleep else 1
-        self.log.debug('mode:%d', mode)
+        self.log.debug('driver mode:%d', mode)
         self.ser.write(self.__construct_command(CMD_SLEEP, [0x1, mode], id))
         resp = self.__read_response()
         return resp is not None
@@ -184,6 +238,7 @@ class SDS011(object):
         :return: mode if it is ok, None if error
         :rtype: int
         """
+        assert id is not None
         self.ser.write(self.__construct_command(CMD_MODE, [0x0, 0x0], id))
         resp = self.__read_response()
         if resp is None:
@@ -194,13 +249,14 @@ class SDS011(object):
     def cmd_set_mode(self, mode=1, id=b'\xff\xff'):
         """Set data reporting mode. The setting is still effective after power off
 
-        :param mode: 0：report active mode  1：Report query mode, defaults to 1
+        :param mode: 0：report active mode  1：report query mode, defaults to 1
         :type mode: int, optional
         :param id: sensor id to request mode, defaults to b'\xff\xff' that is 'all'
         :type id: 2 bytes, optional
         :return: True is set is ok
         :rtype: bool
         """
+        assert id is not None
         self.log.debug('mode:%d', mode)
         self.ser.write(self.__construct_command(CMD_MODE, [0x1, mode], id))
         resp = self.__read_response()
@@ -215,17 +271,27 @@ class SDS011(object):
     def cmd_firmware_ver(self, id=b'\xff\xff'):
         """Get FW version
 
-        :return: version description dictionary
+        :return: version description dictionary  or None if error
+                 with fields: 'year', 'month', 'day', 'id', 'pretty'
         :rtype: dict
         """
+        assert id is not None
         # 7: CMD_FIRMWARE: not needs any PC->Sensor data
         self.ser.write(self.__construct_command(7, dest=id))
         d = self.__read_response()
         self.log.debug('fw ver byte:%s', str(d))
         return self.__process_version(d)
 
-    def cmd_query_data(self):
-        self.ser.write(self.__construct_command(CMD_QUERY_DATA))
+    def cmd_query_data(self, id=b'\xff\xff'):
+        """Read dust values from the sensor
+
+        :param id: Sensor ID, defaults to b'\xff\xff'
+        :type id: 2 bytes, optional
+        :return: dust data as dictionary
+        :rtype: dict
+        """
+        assert id is not None
+        self.ser.write(self.__construct_command(CMD_QUERY_DATA, dest=id))
         d = self.__read_response()
         self.log.debug(d)
         if d is None:
@@ -244,7 +310,10 @@ class SDS011(object):
         :return: operation result
         :rtype: bool
         """
-        self.ser.write(self.__construct_command(CMD_DEVICE_ID, [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, new_id[0], new_id[1]], id))
+        assert id is not None
+        assert new_id is not None
+
+        self.ser.write(self.__construct_command(CMD_DEVICE_ID, [0, ]*10 + [new_id[0], new_id[1]], id))
         d = self.__read_response()
         if d is None:
             self.log.error("Error in sensor response")
@@ -265,6 +334,7 @@ class SDS011(object):
         :return: result
         :rtype: bool
         """
+        assert id is not None
         if period > 30:
             return False
         self.ser.write(self.__construct_command(CMD_WORKING_PERIOD, [0x01, period], id))
@@ -277,6 +347,7 @@ class SDS011(object):
         :return: working period in minutes: work 30 seconds and sleep n*60-30 seconds
         :rtype: int
         """
+        assert id is not None
         self.ser.write(self.__construct_command(CMD_WORKING_PERIOD, [0x00], id))
         d = self.__read_response()
         if d is None:
