@@ -27,7 +27,7 @@ setup(
     name='pysds011',
     version='0.0.3',
     license='MIT',
-    description='Simple python driver for SDS011 PM sensor from Nova.',
+    description='Python driver and command line application to interact with SDS011 PM sensor from Nova.',
     long_description='%s\n%s' % (
         re.compile('^.. start-badges.*^.. end-badges', re.M | re.S).sub('', read('README.rst')),
         re.sub(':[a-z]+:`~?(.*?)`', r'``\1``', read('CHANGELOG.rst'))

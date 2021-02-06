@@ -43,7 +43,7 @@ default_context:
     package_name:              'pysds011'
     pre_commit:                'yes'
     project_name:              'pysds011'
-    project_short_description: 'Simple python driver for SDS011 PM sensor from Nova.'
+    project_short_description: 'Python driver and command line application to interact with SDS011 PM sensor from Nova.'
     pypi_badge:                'yes'
     pypi_disable_upload:       'no'
     release_date:              'today'
