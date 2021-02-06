@@ -167,7 +167,8 @@ class SDS011(object):
         # and bytes([]) means tlaslate int array to bytes array
         # so bytes([r[3]]) means : gimmi a byte array with one element of value r[3]
         res['id'] = bytes([r[3], r[4]])
-        res['pretty'] = "Y: {}, M: {}, D: {}, ID: {}".format(r[0], r[1], r[2], hex(res['id'][0])+hex(res['id'][1]))
+        res['pretty'] = "Y: {}, M: {}, D: {}, ID: {}".format(r[0], r[1], r[2], ''.join('%02x' % i for i in res['id']))
+
         return res
 
     def __process_data(self, d):

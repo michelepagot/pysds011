@@ -408,18 +408,27 @@ def test_id_set(mocker):
     """
     mocker.patch('serial.Serial.open')
     mocker.patch('serial.Serial.flushInput')
+    css = mocker.patch('pysds011.driver.SDS011.cmd_set_sleep')
+    css.return_value = True
     csi = mocker.patch('pysds011.driver.SDS011.cmd_set_id')
     runner = CliRunner()
     result = runner.invoke(main, ['--id', 'cccc', 'id', 'abcd'])
+
+    # Two calls to cmd_set_sleep:
+    #  the first use original address
+    #  at the second one, the sensor has a new address: so sleep
+    # has the use the new one
+    calls = [call(0, id=b'\xcc\xcc'), call(1, id=b'\xab\xcd')]
+    css.assert_has_calls(calls, any_order=False)
     csi.assert_called_once_with(id=b'\xcc\xcc', new_id=b'\xab\xcd')
     assert result.exit_code == 0
 
 
-def test_is_set_without_original_id(mocker):
+def test_id_is_set_without_original_id(mocker):
     """ Set a sensor id without to specify original id
-    result in an error
+    result in an error. As it is a matter of input parameter validation,
+    no interaction with pyserial or driver has to take place at all
     """
-    mocker.patch('pysds011.driver.SDS011.cmd_set_id')
     runner = CliRunner()
     result = runner.invoke(main, ['id', 'abcd'])
     assert result.exit_code != 0
@@ -437,10 +446,15 @@ def test_id_get(mocker):
     """
     mocker.patch('serial.Serial.open')
     mocker.patch('serial.Serial.flushInput')
+    css = mocker.patch('pysds011.driver.SDS011.cmd_set_sleep')
+    css.return_value = True
     cfv = mocker.patch('pysds011.driver.SDS011.cmd_firmware_ver')
     cfv.return_value = {'id': b'\x12\x34', 'paperino': 'maciomicio'}
     runner = CliRunner()
     result = runner.invoke(main, ['id'])
+
+    calls = [call(0, id=b'\xff\xff'), call(1, id=b'\xff\xff')]
+    css.assert_has_calls(calls, any_order=False)
 
     assert '12' in result.output and '34' in result.output
     assert result.exit_code == 0

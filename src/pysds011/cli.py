@@ -240,20 +240,37 @@ def id(ctx, id):
     sd = None
     exit_val = 0
     log.debug('BEGIN')
+    sleep_address = ctx.id
     try:
-        ctx.serial.open()
-        ctx.serial.flushInput()
-        sd = driver.SDS011(ctx.serial, log)
-        if id:
-            sd.cmd_set_id(id=ctx.id, new_id=bytes.fromhex(id))
+        if id and (ctx.id is None or ctx.id == b'\xff\xff'):
+            log.error("Missing current id")
+            exit_val = 1
         else:
-            fw = sd.cmd_firmware_ver(id=ctx.id)
-            log.debug("fw:"+str(fw)+" fw['id'][0]"+str(fw['id'][0])+" fw['id'][1]"+str(fw['id'][1]))
-            click.echo(str(hex(fw['id'][0])) + ' ' + str(hex(fw['id'][1])))
+            ctx.serial.open()
+            ctx.serial.flushInput()
+            sd = driver.SDS011(ctx.serial, log)
+            if sd.cmd_set_sleep(0, id=sleep_address) is not True:
+                log.error('WakeUp failure')
+                exit_val = 1
+                return exit_val  # this jump to finally
+            if id:
+                sd.cmd_set_id(id=sleep_address, new_id=bytes.fromhex(id))
+                sleep_address = bytes.fromhex(id)
+            else:
+                fw = sd.cmd_firmware_ver(id=sleep_address)
+                if fw is None:
+                    log.error('cmd_firmware_ver failure')
+                    exit_val = 1
+                    return exit_val
+                log.debug("fw:"+str(fw))
+                click.echo(''.join('%02x' % i for i in fw['id']))
     except Exception as e:
         log.exception(e)
         exit_val = 1
     finally:
+        log.debug('Id finally')
+        if sd is not None:
+            sd.cmd_set_sleep(1, id=sleep_address)
         ctx.serial.close()
     log.debug('END exit_val:%d' % exit_val)
     return exit_val
