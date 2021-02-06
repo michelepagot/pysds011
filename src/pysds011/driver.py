@@ -146,16 +146,28 @@ class SDS011(object):
         # < : little endian
         # B : unsigned char
         # H : unsigned short
-        r = struct.unpack('<BBBHBB', d[3:])
+        r = struct.unpack('<BBBBBBB', d[3:])
         self.log.debug(r)
         checksum = self.__response_checksum(d)
-        if checksum != r[4] or r[5] != 0xab:
+        if checksum != r[5]:
+            self.log.error('Checksum error')
+            return None
+        if r[6] != 0xab:
+            self.log.error('Tail error')
             return None
         res = dict()
         res['year'] = r[0]
         res['month'] = r[1]
         res['day'] = r[2]
-        res['pretty'] = "Y: {}, M: {}, D: {}, ID: {}".format(r[0], r[1], r[2], hex(r[3]))
+        # how many square brakets on the right side
+        # of the next line :-)
+        # r[3] is an integer and bytes accept both
+        #  bytest(int) and bytes([])
+        # but bytes(int) means gimme an int long bytes array
+        # and bytes([]) means tlaslate int array to bytes array
+        # so bytes([r[3]]) means : gimmi a byte array with one element of value r[3]
+        res['id'] = bytes([r[3], r[4]])
+        res['pretty'] = "Y: {}, M: {}, D: {}, ID: {}".format(r[0], r[1], r[2], hex(res['id'][0])+hex(res['id'][1]))
         return res
 
     def __process_data(self, d):
@@ -259,7 +271,8 @@ class SDS011(object):
     def cmd_firmware_ver(self, id=b'\xff\xff'):
         """Get FW version
 
-        :return: version description dictionary
+        :return: version description dictionary  or None if error
+                 with fields: 'year', 'month', 'day', 'id', 'pretty'
         :rtype: dict
         """
         assert id is not None
