@@ -24,8 +24,6 @@ Pygments==2.7.3
 pymongo==3.11.2
 pyparsing==2.4.7
 pyserial==3.5
-pytest==6.2.1
-pytest-mock==3.5.0
 python-jsonrpc-server==0.3.4
 pywin32-ctypes==0.2.0
 PyYAML==5.3.1
