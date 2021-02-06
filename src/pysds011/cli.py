@@ -79,8 +79,9 @@ def help(ctx, subcommand):
 
 
 @main.command()
+@click.option('--format', default='PRETTY', help='result format (PRETTY|JSON|PM2.5|PM10)')
 @click.pass_obj
-def fw_version(ctx):
+def fw_version(ctx, format):
     """
     Get SDS011 FW version
     """
@@ -95,7 +96,13 @@ def fw_version(ctx):
         sd.cmd_set_mode(sd.MODE_QUERY)
         fw_str = sd.cmd_firmware_ver()
         if fw_str:
-            click.echo('FW version %s' % fw_str['pretty'])
+            if 'PRETTY' in format:
+                click.echo('FW version %s' % fw_str['pretty'])
+            elif 'JSON' in format:
+                click.echo(json.dumps(fw_str))
+            else:
+                log.error('Unknown format %s' % format)
+                exit_val = 1
         else:
             log.error('Invalid FW version')
             exit_val = 1
@@ -189,11 +196,11 @@ def dust(ctx, warmup, format):
         if sd.cmd_set_sleep(0, id=ctx.id) is not True:
             log.error('WakeUp failure')
             exit_val = 1
-            return  # this jump to finally
+            return exit_val  # this jump to finally
         if sd.cmd_set_mode(sd.MODE_QUERY, id=ctx.id) is not True:
             log.error('Set MODE_QUERY failure')
             exit_val = 1
-            return  # this jump to finally
+            return exit_val  # this jump to finally
         time.sleep(warmup)
         pm = sd.cmd_query_data(id=ctx.id)
         if pm is not None:
@@ -218,6 +225,35 @@ def dust(ctx, warmup, format):
         log.debug('Dust finally')
         if sd is not None:
             sd.cmd_set_sleep(1, id=ctx.id)
+        ctx.serial.close()
+    log.debug('END exit_val:%d' % exit_val)
+    return exit_val
+
+
+@main.command()
+@click.argument('id', required=False)
+@click.pass_obj
+def id(ctx, id):
+    """
+    Get and set the sensor address
+    """
+    sd = None
+    exit_val = 0
+    log.debug('BEGIN')
+    try:
+        ctx.serial.open()
+        ctx.serial.flushInput()
+        sd = driver.SDS011(ctx.serial, log)
+        if id:
+            sd.cmd_set_id(id=ctx.id, new_id=bytes.fromhex(id))
+        else:
+            fw = sd.cmd_firmware_ver(id=ctx.id)
+            log.debug("fw:"+str(fw)+" fw['id'][0]"+str(fw['id'][0])+" fw['id'][1]"+str(fw['id'][1]))
+            click.echo(str(hex(fw['id'][0])) + ' ' + str(hex(fw['id'][1])))
+    except Exception as e:
+        log.exception(e)
+        exit_val = 1
+    finally:
         ctx.serial.close()
     log.debug('END exit_val:%d' % exit_val)
     return exit_val
