@@ -22,7 +22,7 @@ official pysds011 docs or in docstrings.
 
 In order to build the documentation locally
 
-1. Create once a developement environment (here a Windows procedure, but linux one is mostly the same)::
+1. Create once a developement environment (here a Windows procedure, but linux one is almost the same)::
 
     virtualenv venv_doc
     venv_doc\Script\activate.bat

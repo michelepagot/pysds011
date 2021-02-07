@@ -42,8 +42,7 @@ Command line is named ``pysds011``
 
 First stop should be the embedded help. Here just an outdated version of it::
 
-    pysds011.exe --help
-
+    pysds011 --help
     Usage: pysds011 [OPTIONS] COMMAND [ARGS]...
 
       pysds011 cli app entry point
@@ -60,6 +59,7 @@ First stop should be the embedded help. Here just an outdated version of it::
       dust        Get dust value
       fw-version  Get SDS011 FW version
       help        Get specific help of a command
+      id          Get and set the sensor address
       mode        Get and Set acquisition MODE [0,1] 1: QUERY mode：Sensor...
       sleep       Get and Set sleep MODE 1:sleep 0:wakeup Just 'sleep' without
                   a...
@@ -123,3 +123,53 @@ Both the ``sleep`` and ``mode`` commands, asserted without and value, read the a
 
     pysds011.exe --port COM4 mode
     1
+
+Command ``id`` is to manage sensor address. Use ``id`` without any parameter to get the address of the connected sensor::
+
+    pysds011 --port COM9 id
+    0x48 0xe7
+
+To change your sensor address you must specify current and new ``id``::
+
+    pysds011 --id 48e7 --port COM9 id 1111
+
+Now your sensor has a new address::
+
+    pysds011 --port COM9 id
+    0x11 0x11
+
+Something unexpected is going on? Would you like to figure out what is wrong from your own? Give a try to the DEBUG logging::
+
+    pysds011 --port COM9 -v DEBUG dust
+    debug: Process subcommands
+    debug: BEGIN
+    debug: is:b'\xff\xff'
+    debug: driver mode:1
+    debug: data:[1, 1] dest:b'\xff\xff'
+    debug: Resized data:[1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    debug: > aab406010100000000000000000000ffff06ab
+    debug: <first byte:b'\xaa':<class 'bytes'>:1
+    debug: < c50601010048e636ab
+    debug: mode:1
+    debug: data:[1, 1] dest:b'\xff\xff'
+    debug: Resized data:[1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    debug: > aab402010100000000000000000000ffff02ab
+    debug: <first byte:b'\xaa':<class 'bytes'>:1
+    debug: < c50201010048e632ab
+    debug: data:[] dest:b'\xff\xff'
+    debug: Resized data:[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    debug: > aab404000000000000000000000000ffff02ab
+    debug: <first byte:b'\xaa':<class 'bytes'>:1
+    debug: < c03c00a50048e60fab
+    debug: b'\xaa\xc0<\x00\xa5\x00H\xe6\x0f\xab'
+    PM 2.5: 6.0 μg/m^3  PM 10: 16.5 μg/m^3
+    debug: Dust finally
+    debug: is:b'\xff\xff'
+    debug: driver mode:0
+    debug: data:[1, 0] dest:b'\xff\xff'
+    debug: Resized data:[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    debug: > aab406010000000000000000000000ffff05ab
+    debug: <first byte:b'\xaa':<class 'bytes'>:1
+    debug: < c50601000048e635ab
+    debug: END exit_val:0
+    debug: process_result res:0
