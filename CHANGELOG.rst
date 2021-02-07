@@ -2,6 +2,12 @@
 Changelog
 =========
 
+0.0.4 (2021-2-7)
+------------------
+
+* add more commands to cli
+* Testing and documentation
+
 0.0.3 (2021-1-8)
 ------------------
 

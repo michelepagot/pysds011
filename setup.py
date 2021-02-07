@@ -25,7 +25,7 @@ def read(*names, **kwargs):
 
 setup(
     name='pysds011',
-    version='0.0.3',
+    version='0.0.4',
     license='MIT',
     description='Python driver and command line application to interact with SDS011 PM sensor from Nova.',
     long_description='%s\n%s' % (

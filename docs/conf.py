@@ -25,7 +25,7 @@ author = 'Michele Pagot'
 copyright = '{0}, {1}'.format(year, author)
 
 # The full version, including alpha/beta/rc tags
-version = release = '0.0.3'
+version = release = '0.0.4'
 
 
 # -- General configuration ---------------------------------------------------
