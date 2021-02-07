@@ -124,12 +124,19 @@ Both the ``sleep`` and ``mode`` commands, asserted without and value, read the a
     pysds011.exe --port COM4 mode
     1
 
+SDS011 sensors has an addressing functionality but most you do not need to care about it at all.
 Command ``id`` is to manage sensor address. Use ``id`` without any parameter to get the address of the connected sensor::
 
     pysds011 --port COM9 id
     0x48 0xe7
 
-To change your sensor address you must specify current and new ``id``::
+Now you can use it to address a particular command to a particular sensor::
+
+    pysds011.exe --id 48e7 --port COM4 fw-version
+
+    FW version Y: 18, M: 11, D: 16, ID: 48e7
+
+To change your sensor address you must specify both current and new ``id``::
 
     pysds011 --id 48e7 --port COM9 id 1111
 
