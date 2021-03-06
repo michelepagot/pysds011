@@ -25,11 +25,40 @@
 					</section>
 				</section>
 				<section>NOVA SD011 sensor</section>
-				<section>pysds011 package</section>
-				<section>Install</section>
+				<section>pysds011 package is present on the web:
+					<li> code on <a href="https://github.com/michelepagot/pysds011" >github</a></li>
+					<li> documentation on <a href="https://pysds011.readthedocs.io/" >readthedocs</a></li>
+					<li> package on <a href="https://pypi.org/project/pysds011/" >pypi</a></li>
+				</section>
+				<section>Install: it is as simple as ...
+					<pre><code data-trim data-noescape>
+						pip install pysds011
+					</code></pre>
+				</section>
 				<section>Ideas</section>
-				<section>Script</section>
-				<section>Command Line</section>
+				<section>Script
+					<pre><code data-trim data-noescape>
+						import serial
+						import logging
+
+						ser = serial.Serial('/dev/ttyUSB0', 9600)
+						ser.open()
+
+						log = logging.getLogger(__name__)
+					
+						sd = driver.SDS011(ser, log)
+						sd.cmd_set_sleep(0)
+						sd.cmd_set_mode(sd.MODE_QUERY)
+						dust_data = sd.cmd_query_data()
+					</code></pre>
+				</section>
+				<section>
+					Command line:
+					<pre><code data-trim data-noescape>
+						pysds011 --port COM9 -v DEBUG dust
+						PM 2.5: 6.0 μg/m^3  PM 10: 16.5 μg/m^3
+					</code></pre>
+				</section>
 				<section>Documentation</section>
 				<section>Links</section>
 				<section>Thanks!</section>
